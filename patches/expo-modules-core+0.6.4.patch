@@ -1,0 +1,3194 @@
+diff --git a/node_modules/expo-modules-core/.DS_Store b/node_modules/expo-modules-core/.DS_Store
+new file mode 100644
+index 0000000..5720479
+Binary files /dev/null and b/node_modules/expo-modules-core/.DS_Store differ
+diff --git a/node_modules/expo-modules-core/ios/.DS_Store b/node_modules/expo-modules-core/ios/.DS_Store
+new file mode 100644
+index 0000000..72fea06
+Binary files /dev/null and b/node_modules/expo-modules-core/ios/.DS_Store differ
+diff --git a/node_modules/expo-modules-core/ios/AppDelegates/ExpoAppDelegate.swift b/node_modules/expo-modules-core/ios/AppDelegates/ExpoAppDelegate.swift
+index 88c0d99..a86988d 100644
+--- a/node_modules/expo-modules-core/ios/AppDelegates/ExpoAppDelegate.swift
++++ b/node_modules/expo-modules-core/ios/AppDelegates/ExpoAppDelegate.swift
+@@ -20,7 +20,7 @@ open class ExpoAppDelegate: UIResponder, UIApplicationDelegate {
+ 
+   // MARK: - Initializing the App
+ 
+-  open func application(_ application: UIApplication, willFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
++  open func application(_ application: UIApplication, willFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+     let parsedSubscribers = subscribers.filter {
+       $0.responds(to: #selector(application(_:willFinishLaunchingWithOptions:)))
+     }
+@@ -28,8 +28,8 @@ open class ExpoAppDelegate: UIResponder, UIApplicationDelegate {
+     // If we can't find a subscriber that implements `willFinishLaunchingWithOptions`, we will delegate the decision if we can handel the passed URL to
+     // the `didFinishLaunchingWithOptions` method by returning `true` here.
+     //  You can read more about how iOS handles deep links here: https://developer.apple.com/documentation/uikit/uiapplicationdelegate/1623112-application#discussion
+-    if (parsedSubscribers.isEmpty) {
+-      return true;
++    if parsedSubscribers.isEmpty {
++      return true
+     }
+ 
+     return parsedSubscribers.reduce(false) { result, subscriber in
+@@ -37,7 +37,7 @@ open class ExpoAppDelegate: UIResponder, UIApplicationDelegate {
+     }
+   }
+ 
+-  open func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
++  open func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+     return subscribers.reduce(false) { result, subscriber in
+       return subscriber.application?(application, didFinishLaunchingWithOptions: launchOptions) ?? false || result
+     }
+@@ -107,7 +107,11 @@ open class ExpoAppDelegate: UIResponder, UIApplicationDelegate {
+     subscribers.forEach { $0.application?(application, didFailToRegisterForRemoteNotificationsWithError: error) }
+   }
+ 
+-  open func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
++  open func application(
++    _ application: UIApplication,
++    didReceiveRemoteNotification userInfo: [AnyHashable: Any],
++    fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
++  ) {
+     let selector = #selector(application(_:didReceiveRemoteNotification:fetchCompletionHandler:))
+     let subs = subscribers.filter { $0.responds(to: selector) }
+     var subscribersLeft = subs.count
+@@ -143,7 +147,11 @@ open class ExpoAppDelegate: UIResponder, UIApplicationDelegate {
+     }
+   }
+ 
+-  open func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
++  open func application(
++    _ application: UIApplication,
++    continue userActivity: NSUserActivity,
++    restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
++  ) -> Bool {
+     let selector = #selector(application(_:continue:restorationHandler:))
+     let subs = subscribers.filter { $0.responds(to: selector) }
+     var subscribersLeft = subs.count
+@@ -238,7 +246,7 @@ open class ExpoAppDelegate: UIResponder, UIApplicationDelegate {
+ 
+   // MARK: - Opening a URL-Specified Resource
+ 
+-  open func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
++  open func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+     return subscribers.contains { subscriber in
+       return subscriber.application?(app, open: url, options: options) ?? false
+     }
+@@ -283,7 +291,7 @@ open class ExpoAppDelegate: UIResponder, UIApplicationDelegate {
+       fatalError("Expo modules provider must implement `ModulesProviderProtocol`.")
+     }
+     provider.getReactDelegateHandlers()
+-      .sorted { (tuple1, tuple2) -> Bool in
++      .sorted { tuple1, tuple2 -> Bool in
+         return ModulePriorities.get(tuple1.packageName) > ModulePriorities.get(tuple2.packageName)
+       }
+       .forEach { handlerTuple in
+diff --git a/node_modules/expo-modules-core/ios/JSI/ExpoModulesHostObject.h b/node_modules/expo-modules-core/ios/JSI/ExpoModulesHostObject.h
+new file mode 100644
+index 0000000..ab39157
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/JSI/ExpoModulesHostObject.h
+@@ -0,0 +1,33 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++#ifdef __cplusplus
++
++#import <vector>
++#import <jsi/jsi.h>
++
++namespace jsi = facebook::jsi;
++
++@class SwiftInteropBridge;
++
++namespace expo {
++
++class JSI_EXPORT ExpoModulesHostObject : public jsi::HostObject {
++public:
++  ExpoModulesHostObject(SwiftInteropBridge *interopBridge);
++
++  virtual ~ExpoModulesHostObject();
++
++  jsi::Value get(jsi::Runtime &, const jsi::PropNameID &name) override;
++
++  void set(jsi::Runtime &, const jsi::PropNameID &name, const jsi::Value &value) override;
++
++  std::vector<jsi::PropNameID> getPropertyNames(jsi::Runtime &rt) override;
++
++private:
++  SwiftInteropBridge *swiftInterop;
++
++}; // class ExpoModulesHostObject
++
++} // namespace expo
++
++#endif
+diff --git a/node_modules/expo-modules-core/ios/JSI/ExpoModulesHostObject.mm b/node_modules/expo-modules-core/ios/JSI/ExpoModulesHostObject.mm
+new file mode 100644
+index 0000000..b93045b
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/JSI/ExpoModulesHostObject.mm
+@@ -0,0 +1,40 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++#import <ExpoModulesCore/ExpoModulesHostObject.h>
++#import <ExpoModulesCore/Swift.h>
++
++namespace expo {
++
++ExpoModulesHostObject::ExpoModulesHostObject(SwiftInteropBridge *swiftInterop) : swiftInterop(swiftInterop) {}
++
++ExpoModulesHostObject::~ExpoModulesHostObject() {
++  [swiftInterop setRuntime:nil];
++}
++
++jsi::Value ExpoModulesHostObject::get(jsi::Runtime &runtime, const jsi::PropNameID &name) {
++  NSString *moduleName = [NSString stringWithUTF8String:name.utf8(runtime).c_str()];
++  JavaScriptObject *nativeObject = [swiftInterop getNativeModuleObject:moduleName];
++
++  return nativeObject ? jsi::Value(runtime, *[nativeObject get]) : jsi::Value::undefined();
++}
++
++void ExpoModulesHostObject::set(jsi::Runtime &runtime, const jsi::PropNameID &name, const jsi::Value &value) {
++  std::string message("RuntimeError: Cannot override the host object for expo module '");
++  message += name.utf8(runtime);
++  message += "'.";
++  throw jsi::JSError(runtime, message);
++}
++
++std::vector<jsi::PropNameID> ExpoModulesHostObject::getPropertyNames(jsi::Runtime &runtime) {
++  NSArray<NSString *> *moduleNames = [swiftInterop getModuleNames];
++  std::vector<jsi::PropNameID> propertyNames;
++
++  propertyNames.reserve([moduleNames count]);
++
++  for (NSString *moduleName in moduleNames) {
++    propertyNames.push_back(jsi::PropNameID::forAscii(runtime, [moduleName UTF8String]));
++  }
++  return propertyNames;
++}
++
++} // namespace expo
+diff --git a/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.h b/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.h
+index 101e9da..cede566 100644
+--- a/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.h
++++ b/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.h
+@@ -12,6 +12,10 @@ using namespace react;
+ 
+ namespace expo {
+ 
++using PromiseInvocationBlock = void (^)(RCTPromiseResolveBlock resolveWrapper, RCTPromiseRejectBlock rejectWrapper);
++
++void callPromiseSetupWithBlock(jsi::Runtime &runtime, std::shared_ptr<CallInvoker> jsInvoker, std::shared_ptr<Promise> promise, PromiseInvocationBlock setupBlock);
++
+ class JSI_EXPORT ExpoModulesProxySpec : public TurboModule {
+ public:
+   ExpoModulesProxySpec(std::shared_ptr<CallInvoker> callInvoker, EXNativeModulesProxy *nativeModulesProxy);
+diff --git a/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.mm b/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.mm
+index 6644892..f15d9ec 100644
+--- a/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.mm
++++ b/node_modules/expo-modules-core/ios/JSI/ExpoModulesProxySpec.mm
+@@ -7,9 +7,7 @@
+ 
+ namespace expo {
+ 
+-using PromiseInvocationBlock = void (^)(RCTPromiseResolveBlock resolveWrapper, RCTPromiseRejectBlock rejectWrapper);
+-
+-static void callPromiseSetupWithBlock(jsi::Runtime &runtime, std::shared_ptr<CallInvoker> jsInvoker, std::shared_ptr<Promise> promise, PromiseInvocationBlock setupBlock)
++void callPromiseSetupWithBlock(jsi::Runtime &runtime, std::shared_ptr<CallInvoker> jsInvoker, std::shared_ptr<Promise> promise, PromiseInvocationBlock setupBlock)
+ {
+   auto weakResolveWrapper = CallbackWrapper::createWeak(promise->resolve_.getFunction(runtime), runtime, jsInvoker);
+   auto weakRejectWrapper = CallbackWrapper::createWeak(promise->reject_.getFunction(runtime), runtime, jsInvoker);
+diff --git a/node_modules/expo-modules-core/ios/JSI/JSIConversions.h b/node_modules/expo-modules-core/ios/JSI/JSIConversions.h
+index 2239a6c..f28ae80 100644
+--- a/node_modules/expo-modules-core/ios/JSI/JSIConversions.h
++++ b/node_modules/expo-modules-core/ios/JSI/JSIConversions.h
+@@ -31,6 +31,8 @@ NSString *convertJSIStringToNSString(jsi::Runtime &runtime, const jsi::String &v
+ 
+ NSArray *convertJSIArrayToNSArray(jsi::Runtime &runtime, const jsi::Array &value, std::shared_ptr<CallInvoker> jsInvoker);
+ 
++NSArray *convertJSIValuesToNSArray(jsi::Runtime &runtime, const jsi::Value *values, size_t count, std::shared_ptr<CallInvoker> jsInvoker);
++
+ NSDictionary *convertJSIObjectToNSDictionary(jsi::Runtime &runtime, const jsi::Object &value, std::shared_ptr<CallInvoker> jsInvoker);
+ 
+ id convertJSIValueToObjCObject(jsi::Runtime &runtime, const jsi::Value &value, std::shared_ptr<CallInvoker> jsInvoker);
+diff --git a/node_modules/expo-modules-core/ios/JSI/JSIConversions.mm b/node_modules/expo-modules-core/ios/JSI/JSIConversions.mm
+index 5e90ea9..a346759 100644
+--- a/node_modules/expo-modules-core/ios/JSI/JSIConversions.mm
++++ b/node_modules/expo-modules-core/ios/JSI/JSIConversions.mm
+@@ -86,6 +86,15 @@
+   return [result copy];
+ }
+ 
++NSArray *convertJSIValuesToNSArray(jsi::Runtime &runtime, const jsi::Value *values, size_t count, std::shared_ptr<CallInvoker> jsInvoker)
++{
++  NSMutableArray *result = [NSMutableArray arrayWithCapacity:count];
++  for (int i = 0; i < count; i++) {
++    result[i] = convertJSIValueToObjCObject(runtime, values[i], jsInvoker);
++  }
++  return result;
++}
++
+ NSDictionary *convertJSIObjectToNSDictionary(jsi::Runtime &runtime, const jsi::Object &value, std::shared_ptr<CallInvoker> jsInvoker)
+ {
+   jsi::Array propertyNames = value.getPropertyNames(runtime);
+diff --git a/node_modules/expo-modules-core/ios/JSI/JSIInstaller.h b/node_modules/expo-modules-core/ios/JSI/JSIInstaller.h
+index e50264e..db9e62b 100644
+--- a/node_modules/expo-modules-core/ios/JSI/JSIInstaller.h
++++ b/node_modules/expo-modules-core/ios/JSI/JSIInstaller.h
+@@ -17,3 +17,13 @@ void installRuntimeObjects(jsi::Runtime &runtime, std::shared_ptr<CallInvoker> c
+ } // namespace expo
+ 
+ #endif
++
++#import <ExpoModulesCore/JavaScriptRuntime.h>
++
++@class SwiftInteropBridge;
++
++@interface JavaScriptRuntimeManager : NSObject
++
+++ (void)installExpoModulesToRuntime:(nonnull JavaScriptRuntime *)runtime withSwiftInterop:(nonnull SwiftInteropBridge *)swiftInterop;
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/JSI/JSIInstaller.mm b/node_modules/expo-modules-core/ios/JSI/JSIInstaller.mm
+index a4c834d..1960b05 100644
+--- a/node_modules/expo-modules-core/ios/JSI/JSIInstaller.mm
++++ b/node_modules/expo-modules-core/ios/JSI/JSIInstaller.mm
+@@ -2,12 +2,12 @@
+ 
+ #import <ExpoModulesCore/JSIInstaller.h>
+ #import <ExpoModulesCore/ExpoModulesProxySpec.h>
++#import <ExpoModulesCore/ExpoModulesHostObject.h>
++#import <ExpoModulesCore/Swift.h>
+ 
+ using namespace facebook;
+ using namespace react;
+ 
+-//using PromiseInvocationBlock = void (^)(RCTPromiseResolveBlock resolveWrapper, RCTPromiseRejectBlock rejectWrapper);
+-
+ namespace expo {
+ 
+ void installRuntimeObjects(jsi::Runtime &runtime, std::shared_ptr<CallInvoker> callInvoker, EXNativeModulesProxy *nativeModulesProxy)
+@@ -20,3 +20,15 @@ void installRuntimeObjects(jsi::Runtime &runtime, std::shared_ptr<CallInvoker> c
+ }
+ 
+ } // namespace expo
++
++@implementation JavaScriptRuntimeManager
++
+++ (void)installExpoModulesToRuntime:(nonnull JavaScriptRuntime *)runtime withSwiftInterop:(nonnull SwiftInteropBridge *)swiftInterop
++{
++  std::shared_ptr<expo::ExpoModulesHostObject> hostObjectPtr = std::make_shared<expo::ExpoModulesHostObject>(swiftInterop);
++  JavaScriptObject *global = [runtime global];
++
++  global[@"ExpoModules"] = [runtime createHostObject:hostObjectPtr];
++}
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/JSI/JavaScriptObject.h b/node_modules/expo-modules-core/ios/JSI/JavaScriptObject.h
+new file mode 100644
+index 0000000..8d2de57
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/JSI/JavaScriptObject.h
+@@ -0,0 +1,60 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++#import <Foundation/Foundation.h>
++#import <React/RCTBridgeModule.h>
++
++#ifdef __cplusplus
++#import <jsi/jsi.h>
++#import <ReactCommon/CallInvoker.h>
++
++namespace jsi = facebook::jsi;
++#endif // __cplusplus
++
++typedef void (^JSAsyncFunctionBlock)(NSArray * _Nonnull, RCTPromiseResolveBlock _Nonnull, RCTPromiseRejectBlock _Nonnull);
++typedef id _Nullable (^JSSyncFunctionBlock)(NSArray * _Nonnull);
++
++@class JavaScriptRuntime;
++
++@interface JavaScriptObject : NSObject
++
++// Some parts of the interface must be hidden for Swift – it can't import any C++ code.
++#ifdef __cplusplus
++- (nonnull instancetype)initWith:(std::shared_ptr<jsi::Object>)jsObjectPtr
++                         runtime:(nonnull JavaScriptRuntime *)runtime;
++
++/**
++ Returns the pointer to the underlying object.
++ */
++- (nonnull jsi::Object *)get;
++#endif // __cplusplus
++
++#pragma mark - Subscripting
++
++/**
++ Subscript getter. Supports only values convertible to Foundation types, otherwise `nil` is returned.
++ */
++- (nullable id)objectForKeyedSubscript:(nonnull NSString *)key;
++
++/**
++ Subscript setter. Only `JavaScriptObject` and Foundation object convertible to JSI values can be used as a value,
++ otherwise the property is set to `undefined`.
++ */
++- (void)setObject:(nullable id)obj forKeyedSubscript:(nonnull NSString *)key;
++
++#pragma mark - Functions
++
++/**
++ Sets given function block on the object as a host function returning a promise.
++ */
++- (void)setAsyncFunction:(nonnull NSString *)key
++               argsCount:(NSInteger)argsCount
++                   block:(nonnull JSAsyncFunctionBlock)block;
++
++/**
++ Sets given synchronous function block as a host function on the object.
++ */
++- (void)setSyncFunction:(nonnull NSString *)name
++              argsCount:(NSInteger)argsCount
++                  block:(nonnull JSSyncFunctionBlock)block;
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/JSI/JavaScriptObject.mm b/node_modules/expo-modules-core/ios/JSI/JavaScriptObject.mm
+new file mode 100644
+index 0000000..a57cdb4
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/JSI/JavaScriptObject.mm
+@@ -0,0 +1,93 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++#import <ExpoModulesCore/JSIConversions.h>
++#import <ExpoModulesCore/JavaScriptObject.h>
++#import <ExpoModulesCore/JavaScriptRuntime.h>
++#import <ExpoModulesCore/ExpoModulesProxySpec.h>
++
++@implementation JavaScriptObject {
++  /**
++   Pointer to the `JavaScriptRuntime` wrapper.
++
++   \note It must be weak because only then the original runtime can be safely deallocated
++   when the JS engine wants to without unsetting it on each created object.
++   */
++  __weak JavaScriptRuntime *_runtime;
++
++  /**
++   Shared pointer to the original JSI object that is being wrapped by `JavaScriptObject` class.
++   */
++  std::shared_ptr<jsi::Object> _jsObjectPtr;
++}
++
++- (nonnull instancetype)initWith:(std::shared_ptr<jsi::Object>)jsObjectPtr
++                         runtime:(nonnull JavaScriptRuntime *)runtime
++{
++  if (self = [super init]) {
++    _runtime = runtime;
++    _jsObjectPtr = jsObjectPtr;
++  }
++  return self;
++}
++
++- (nonnull jsi::Object *)get
++{
++  return _jsObjectPtr.get();
++}
++
++#pragma mark - Subscripting
++
++- (nullable id)objectForKeyedSubscript:(nonnull NSString *)key
++{
++  auto runtime = [_runtime get];
++  auto callInvoker = [_runtime callInvoker];
++
++  if (runtime && callInvoker) {
++    auto value = _jsObjectPtr->getProperty(*runtime, [key UTF8String]);
++    return expo::convertJSIValueToObjCObject(*runtime, value, callInvoker);
++  }
++  return nil;
++}
++
++- (void)setObject:(nullable id)obj forKeyedSubscript:(nonnull NSString *)key
++{
++  auto runtime = [_runtime get];
++
++  if (!runtime) {
++    NSLog(@"Cannot set '%@' property when the JavaScript runtime is no longer available.", key);
++    return;
++  }
++  if ([obj isKindOfClass:[JavaScriptObject class]]) {
++    _jsObjectPtr->setProperty(*runtime, [key UTF8String], *[obj get]);
++  } else {
++    _jsObjectPtr->setProperty(*runtime, [key UTF8String], expo::convertObjCObjectToJSIValue(*runtime, obj));
++  }
++}
++
++#pragma mark - Functions
++
++- (void)setAsyncFunction:(nonnull NSString *)name
++               argsCount:(NSInteger)argsCount
++                   block:(nonnull JSAsyncFunctionBlock)block
++{
++  if (!_runtime) {
++    NSLog(@"Cannot set '%@' async function when the JavaScript runtime is no longer available.", name);
++    return;
++  }
++  jsi::Function function = [_runtime createAsyncFunction:name argsCount:argsCount block:block];
++  _jsObjectPtr->setProperty(*[_runtime get], [name UTF8String], function);
++}
++
++- (void)setSyncFunction:(nonnull NSString *)name
++              argsCount:(NSInteger)argsCount
++                  block:(nonnull JSSyncFunctionBlock)block
++{
++  if (!_runtime) {
++    NSLog(@"Cannot set '%@' sync function when the JavaScript runtime is no longer available.", name);
++    return;
++  }
++  jsi::Function function = [_runtime createSyncFunction:name argsCount:argsCount block:block];
++  _jsObjectPtr->setProperty(*[_runtime get], [name UTF8String], function);
++}
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/JSI/JavaScriptRuntime.h b/node_modules/expo-modules-core/ios/JSI/JavaScriptRuntime.h
+new file mode 100644
+index 0000000..ddfb6ce
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/JSI/JavaScriptRuntime.h
+@@ -0,0 +1,54 @@
++// Copyright 2018-present 650 Industries. All rights reserved.
++
++#import <ExpoModulesCore/JavaScriptObject.h>
++
++#ifdef __cplusplus
++#import <ReactCommon/CallInvoker.h>
++
++namespace jsi = facebook::jsi;
++namespace react = facebook::react;
++#endif // __cplusplus
++
++@interface JavaScriptRuntime : NSObject
++
++#ifdef __cplusplus
++typedef jsi::Value (^JSHostFunctionBlock)(jsi::Runtime &runtime, std::shared_ptr<react::CallInvoker> callInvoker, NSArray * _Nonnull arguments);
++
++- (nonnull instancetype)initWithRuntime:(jsi::Runtime &)runtime
++                            callInvoker:(std::shared_ptr<react::CallInvoker>)callInvoker;
++
++/**
++ Returns the underlying runtime object.
++ */
++- (nonnull jsi::Runtime *)get;
++
++/**
++ Returns the call invoker the runtime was initialized with.
++ */
++- (std::shared_ptr<react::CallInvoker>)callInvoker;
++
++/**
++ Wraps given host object to `JavaScriptObject`.
++ */
++- (nonnull JavaScriptObject *)createHostObject:(std::shared_ptr<jsi::HostObject>)jsiHostObjectPtr;
++
++- (jsi::Function)createSyncFunction:(nonnull NSString *)name
++                          argsCount:(NSInteger)argsCount
++                              block:(nonnull JSSyncFunctionBlock)block;
++
++- (jsi::Function)createAsyncFunction:(nonnull NSString *)name
++                           argsCount:(NSInteger)argsCount
++                               block:(nonnull JSAsyncFunctionBlock)block;
++#endif // __cplusplus
++
++/**
++ Returns the runtime global object for use in Swift.
++ */
++- (nonnull JavaScriptObject *)global;
++
++/**
++ Creates a new object for use in Swift.
++ */
++- (nonnull JavaScriptObject *)createObject;
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/JSI/JavaScriptRuntime.mm b/node_modules/expo-modules-core/ios/JSI/JavaScriptRuntime.mm
+new file mode 100644
+index 0000000..f0fea0c
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/JSI/JavaScriptRuntime.mm
+@@ -0,0 +1,102 @@
++// Copyright 2018-present 650 Industries. All rights reserved.
++
++#import <jsi/jsi.h>
++
++#import <ExpoModulesCore/JavaScriptRuntime.h>
++#import <ExpoModulesCore/ExpoModulesHostObject.h>
++#import <ExpoModulesCore/Swift.h>
++
++using namespace facebook;
++
++@implementation JavaScriptRuntime {
++  jsi::Runtime *_runtime;
++  std::shared_ptr<react::CallInvoker> _jsCallInvoker;
++
++  JavaScriptObject *_global;
++}
++
++- (nonnull instancetype)initWithRuntime:(jsi::Runtime &)runtime callInvoker:(std::shared_ptr<react::CallInvoker>)callInvoker
++{
++  if (self = [super init]) {
++    _runtime = &runtime;
++    _jsCallInvoker = callInvoker;
++
++    auto jsGlobalPtr = std::make_shared<jsi::Object>(_runtime->global());
++    _global = [[JavaScriptObject alloc] initWith:jsGlobalPtr runtime:self];
++  }
++  return self;
++}
++
++- (nonnull jsi::Runtime *)get
++{
++  return _runtime;
++}
++
++- (std::shared_ptr<react::CallInvoker>)callInvoker
++{
++  return _jsCallInvoker;
++}
++
++- (nonnull JavaScriptObject *)createObject
++{
++  auto jsObjectPtr = std::make_shared<jsi::Object>(*_runtime);
++  return [[JavaScriptObject alloc] initWith:jsObjectPtr runtime:self];
++}
++
++- (nonnull JavaScriptObject *)createHostObject:(std::shared_ptr<jsi::HostObject>)jsiHostObjectPtr
++{
++  auto jsObjectPtr = std::make_shared<jsi::Object>(jsi::Object::createFromHostObject(*_runtime, jsiHostObjectPtr));
++  return [[JavaScriptObject alloc] initWith:jsObjectPtr runtime:self];
++}
++
++- (nonnull JavaScriptObject *)global
++{
++  return _global;
++}
++
++- (jsi::Function)createSyncFunction:(nonnull NSString *)name
++                          argsCount:(NSInteger)argsCount
++                              block:(nonnull JSSyncFunctionBlock)block
++{
++  return [self createHostFunction:name argsCount:argsCount block:^jsi::Value(jsi::Runtime &runtime, std::shared_ptr<react::CallInvoker> callInvoker, NSArray * _Nonnull arguments) {
++    return expo::convertObjCObjectToJSIValue(runtime, block(arguments));
++  }];
++}
++
++- (jsi::Function)createAsyncFunction:(nonnull NSString *)name
++                           argsCount:(NSInteger)argsCount
++                               block:(nonnull JSAsyncFunctionBlock)block
++{
++  return [self createHostFunction:name argsCount:argsCount block:^jsi::Value(jsi::Runtime &runtime, std::shared_ptr<react::CallInvoker> callInvoker, NSArray *arguments) {
++    // The function that is invoked as a setup of the JavaScript `Promise`.
++    auto promiseSetup = [callInvoker, block, arguments](jsi::Runtime &runtime, std::shared_ptr<Promise> promise) {
++      expo::callPromiseSetupWithBlock(runtime, callInvoker, promise, ^(RCTPromiseResolveBlock resolver, RCTPromiseRejectBlock rejecter) {
++        block(arguments, resolver, rejecter);
++      });
++    };
++    return createPromiseAsJSIValue(runtime, promiseSetup);
++  }];
++}
++
++#pragma mark - Private
++
++typedef jsi::Value (^JSHostFunctionBlock)(jsi::Runtime &runtime, std::shared_ptr<react::CallInvoker> callInvoker, NSArray * _Nonnull arguments);
++
++- (jsi::Function)createHostFunction:(nonnull NSString *)name
++                          argsCount:(NSInteger)argsCount
++                              block:(nonnull JSHostFunctionBlock)block
++{
++  jsi::PropNameID propNameId = jsi::PropNameID::forAscii(*_runtime, [name UTF8String], [name length]);
++  std::weak_ptr<react::CallInvoker> weakCallInvoker = _jsCallInvoker;
++  jsi::HostFunctionType function = [weakCallInvoker, block](jsi::Runtime &runtime, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
++    if (auto callInvoker = weakCallInvoker.lock()) {
++      NSArray *arguments = expo::convertJSIValuesToNSArray(runtime, args, count, callInvoker);
++      return block(runtime, callInvoker, arguments);
++    }
++    // TODO: We should throw some kind of error.
++    return jsi::Value::undefined();
++  };
++  return jsi::Function::createFromHostFunction(*_runtime, propNameId, (unsigned int)argsCount, function);
++}
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/ModuleRegistryAdapter/EXModuleRegistryAdapter.m b/node_modules/expo-modules-core/ios/ModuleRegistryAdapter/EXModuleRegistryAdapter.m
+index 2f2d210..fedbe56 100644
+--- a/node_modules/expo-modules-core/ios/ModuleRegistryAdapter/EXModuleRegistryAdapter.m
++++ b/node_modules/expo-modules-core/ios/ModuleRegistryAdapter/EXModuleRegistryAdapter.m
+@@ -55,18 +55,9 @@ - (instancetype)initWithModuleRegistryProvider:(EXModuleRegistryProvider *)modul
+   EXReactNativeEventEmitter *eventEmitter = [EXReactNativeEventEmitter new];
+   [moduleRegistry registerInternalModule:eventEmitter];
+ 
+-  NSMutableSet *exportedSwiftViewModuleNames = [NSMutableSet new];
+-
+-  for (ViewModuleWrapper *swiftViewModule in [nativeModulesProxy.swiftInteropBridge getViewManagers]) {
+-    Class wrappedViewModuleClass = [ViewModuleWrapper createViewModuleWrapperClassWithModule:swiftViewModule];
+-    [extraModules addObject:[[wrappedViewModuleClass alloc] init]];
+-    [exportedSwiftViewModuleNames addObject:swiftViewModule.name];
+-  }
+   for (EXViewManager *viewManager in [moduleRegistry getAllViewManagers]) {
+-    if (![exportedSwiftViewModuleNames containsObject:viewManager.viewName]) {
+-      Class viewManagerAdapterClass = [EXViewManagerAdapterClassesRegistry createViewManagerAdapterClassForViewManager:viewManager];
+-      [extraModules addObject:[[viewManagerAdapterClass alloc] init]];
+-    }
++    Class viewManagerAdapterClass = [EXViewManagerAdapterClassesRegistry createViewManagerAdapterClassForViewManager:viewManager];
++    [extraModules addObject:[[viewManagerAdapterClass alloc] init]];
+   }
+ 
+   // Silence React Native warning `Base module "%s" does not exist`
+@@ -75,7 +66,6 @@ - (instancetype)initWithModuleRegistryProvider:(EXModuleRegistryProvider *)modul
+   // subclass EXViewManagerAdapter, so RN expects to find EXViewManagerAdapter
+   // exported.
+   [extraModules addObject:[[EXViewManagerAdapter alloc] init]];
+-  [extraModules addObject:[[ViewModuleWrapper alloc] initWithDummy:nil]];
+ 
+   // It is possible that among internal modules there are some RCTBridgeModules --
+   // let's add them to extraModules here.
+diff --git a/node_modules/expo-modules-core/ios/NativeModulesProxy/EXNativeModulesProxy.mm b/node_modules/expo-modules-core/ios/NativeModulesProxy/EXNativeModulesProxy.mm
+index 675a66b..996b535 100644
+--- a/node_modules/expo-modules-core/ios/NativeModulesProxy/EXNativeModulesProxy.mm
++++ b/node_modules/expo-modules-core/ios/NativeModulesProxy/EXNativeModulesProxy.mm
+@@ -150,8 +150,18 @@ - (NSDictionary *)constantsToExport
+ - (void)setBridge:(RCTBridge *)bridge
+ {
+   if (!_bridge) {
+-    [self registerExpoModulesInBridge:bridge];
++    // The `setBridge` can be called during module setup or after. Registering more modules
++    // during setup causes a crash due to mutating `_moduleDataByID` while it's being enumerated.
++    // In that case we register them asynchronously.
++    if ([[bridge valueForKey:@"_moduleSetupComplete"] boolValue]) {
++      [self registerExpoModulesInBridge:bridge];
++    } else {
++      dispatch_async(dispatch_get_main_queue(), ^{
++        [self registerExpoModulesInBridge:bridge];
++      });
++    }
+   }
++  [_swiftInteropBridge setReactBridge:bridge];
+   _bridge = bridge;
+ }
+ 
+@@ -233,45 +243,49 @@ - (id)callMethodSync:(NSString *)moduleName methodName:(NSString *)methodName ar
+ 
+ - (void)registerExpoModulesInBridge:(RCTBridge *)bridge
+ {
+-  // Registering expo modules in bridge is needed only when the proxy module owns the registry
+-  // (was autoinitialized by React Native). Otherwise they're registered by the registry adapter.
+-  if (!_ownsModuleRegistry || [bridge moduleIsInitialized:[EXReactNativeEventEmitter class]]) {
+-    return;
+-  }
++  // Registering expo modules (excluding Swifty view managers!) in bridge is needed only when the proxy module owns
++  // the registry (was autoinitialized by React Native). Otherwise they're registered by the registry adapter.
++  BOOL ownsModuleRegistry = _ownsModuleRegistry && ![bridge moduleIsInitialized:[EXReactNativeEventEmitter class]];
+ 
+   // An array of `RCTBridgeModule` classes to register.
+   NSMutableArray<Class<RCTBridgeModule>> *additionalModuleClasses = [NSMutableArray new];
+   NSMutableSet *visitedSweetModules = [NSMutableSet new];
+ 
+-  // Event emitter is a bridge module, however it's also needed by expo modules,
+-  // so later we'll register an instance created by React Native as expo module.
+-  [additionalModuleClasses addObject:[EXReactNativeEventEmitter class]];
+-
+   // Add dynamic wrappers for view modules written in Sweet API.
+   for (ViewModuleWrapper *swiftViewModule in [_swiftInteropBridge getViewManagers]) {
+-    Class wrappedViewModuleClass = [ViewModuleWrapper createViewModuleWrapperClassWithModule:swiftViewModule];
++    Class wrappedViewModuleClass = [self registerComponentData:swiftViewModule inBridge:bridge];
+     [additionalModuleClasses addObject:wrappedViewModuleClass];
+     [visitedSweetModules addObject:swiftViewModule.name];
+   }
+ 
+-  // Add dynamic wrappers for the classic view managers.
+-  for (EXViewManager *viewManager in [_exModuleRegistry getAllViewManagers]) {
+-    if (![visitedSweetModules containsObject:viewManager.viewName]) {
+-      Class viewManagerWrapperClass = [EXViewManagerAdapterClassesRegistry createViewManagerAdapterClassForViewManager:viewManager];
+-      [additionalModuleClasses addObject:viewManagerWrapperClass];
++  [additionalModuleClasses addObject:[ViewModuleWrapper class]];
++  [self registerLegacyComponentData:[ViewModuleWrapper class] inBridge:bridge];
++
++  // Add modules from legacy module registry only when the NativeModulesProxy owns the registry.
++  if (ownsModuleRegistry) {
++    // Event emitter is a bridge module, however it's also needed by expo modules,
++    // so later we'll register an instance created by React Native as expo module.
++    [additionalModuleClasses addObject:[EXReactNativeEventEmitter class]];
++
++    // Add dynamic wrappers for the classic view managers.
++    for (EXViewManager *viewManager in [_exModuleRegistry getAllViewManagers]) {
++      if (![visitedSweetModules containsObject:viewManager.viewName]) {
++        Class viewManagerWrapperClass = [EXViewManagerAdapterClassesRegistry createViewManagerAdapterClassForViewManager:viewManager];
++        [additionalModuleClasses addObject:viewManagerWrapperClass];
++        [self registerLegacyComponentData:viewManagerWrapperClass inBridge:bridge];
++      }
+     }
+-  }
+ 
+-  // View manager wrappers don't have their own prop configs, so we must register
+-  // their base view managers that provides common props such as `proxiedProperties`.
+-  // Otherwise, React Native may treat these props as invalid in subclassing views.
+-  [additionalModuleClasses addObject:[EXViewManagerAdapter class]];
+-  [additionalModuleClasses addObject:[ViewModuleWrapper class]];
++    // View manager wrappers don't have their own prop configs, so we must register
++    // their base view managers that provides common props such as `proxiedProperties`.
++    // Otherwise, React Native may treat these props as invalid in subclassing views.
++    [additionalModuleClasses addObject:[EXViewManagerAdapter class]];
+ 
+-  // Some modules might need access to the bridge.
+-  for (id module in [_exModuleRegistry getAllInternalModules]) {
+-    if ([module conformsToProtocol:@protocol(RCTBridgeModule)]) {
+-      [module setValue:bridge forKey:@"bridge"];
++    // Some modules might need access to the bridge.
++    for (id module in [_exModuleRegistry getAllInternalModules]) {
++      if ([module conformsToProtocol:@protocol(RCTBridgeModule)]) {
++        [module setValue:bridge forKey:@"bridge"];
++      }
+     }
+   }
+ 
+@@ -283,19 +297,19 @@ - (void)registerExpoModulesInBridge:(RCTBridge *)bridge
+   // Register the view managers as additional modules.
+   [self registerAdditionalModuleClasses:additionalModuleClasses inBridge:bridge];
+ 
+-  // Bridge's `registerAdditionalModuleClasses:` method doesn't register
+-  // components in UIManager — we need to register them on our own.
+-  [self registerComponentDataForModuleClasses:additionalModuleClasses inBridge:bridge];
+-
+-  // Get the newly created instance of `EXReactEventEmitter` bridge module,
+-  // pass event names supported by Swift modules and register it in legacy modules registry.
+-  EXReactNativeEventEmitter *eventEmitter = [bridge moduleForClass:[EXReactNativeEventEmitter class]];
+-  [eventEmitter setSwiftInteropBridge:_swiftInteropBridge];
+-  [_exModuleRegistry registerInternalModule:eventEmitter];
+-
+-  // Let the modules consume the registry :)
+-  // It calls `setModuleRegistry:` on all `EXModuleRegistryConsumer`s.
+-  [_exModuleRegistry initialize];
++  // As the last step, when the registry is owned,
++  // register the event emitter and initialize the registry.
++  if (ownsModuleRegistry) {
++    // Get the newly created instance of `EXReactEventEmitter` bridge module,
++    // pass event names supported by Swift modules and register it in legacy modules registry.
++    EXReactNativeEventEmitter *eventEmitter = [bridge moduleForClass:[EXReactNativeEventEmitter class]];
++    [eventEmitter setSwiftInteropBridge:_swiftInteropBridge];
++    [_exModuleRegistry registerInternalModule:eventEmitter];
++
++    // Let the modules consume the registry :)
++    // It calls `setModuleRegistry:` on all `EXModuleRegistryConsumer`s.
++    [_exModuleRegistry initialize];
++  }
+ }
+ 
+ - (void)registerAdditionalModuleClasses:(NSArray<Class> *)moduleClasses inBridge:(RCTBridge *)bridge
+@@ -324,27 +338,45 @@ - (void)registerAdditionalModuleClasses:(NSArray<Class> *)moduleClasses inBridge
+   [bridge registerAdditionalModuleClasses:moduleClasses];
+ }
+ 
+-- (void)registerComponentDataForModuleClasses:(NSArray<Class> *)moduleClasses inBridge:(RCTBridge *)bridge
++- (Class)registerComponentData:(ViewModuleWrapper *)viewModule inBridge:(RCTBridge *)bridge
+ {
+   // Hacky way to get a dictionary with `RCTComponentData` from UIManager.
+   NSMutableDictionary<NSString *, RCTComponentData *> *componentDataByName = [bridge.uiManager valueForKey:@"_componentDataByName"];
++  Class wrappedViewModuleClass = [ViewModuleWrapper createViewModuleWrapperClassWithModule:viewModule];
++  NSString *className = NSStringFromClass(wrappedViewModuleClass);
+ 
+-  // Register missing components data for all view managers.
+-  for (Class moduleClass in moduleClasses) {
+-    NSString *className = NSStringFromClass(moduleClass);
+-
+-    if ([moduleClass isSubclassOfClass:[RCTViewManager class]] && !componentDataByName[className]) {
+-      RCTComponentData *componentData = [RCTComponentData alloc];
+-      if ([componentData respondsToSelector:@selector(initWithManagerClass:bridge:eventDispatcher:)]) {
+-        // Init method was changed in RN 0.65
+-        [componentData initWithManagerClass:moduleClass bridge:bridge eventDispatcher:bridge.eventDispatcher];
+-      } else {
+-        // fallback for older RNs
+-        [componentData initWithManagerClass:moduleClass bridge:bridge];
+-      }
++  if (componentDataByName[className]) {
++    // Just in case the component was already registered, let's leave a log that we're overriding it.
++    NSLog(@"Overriding ComponentData for view %@", className);
++  }
++
++  EXComponentData *componentData = [[EXComponentData alloc] initWithViewModule:viewModule
++                                                                  managerClass:wrappedViewModuleClass
++                                                                        bridge:bridge];
++  componentDataByName[className] = componentData;
++  return wrappedViewModuleClass;
++}
+ 
+-      componentDataByName[className] = componentData;
++/**
++ Bridge's `registerAdditionalModuleClasses:` method doesn't register
++ components in UIManager — we need to register them on our own.
++ */
++- (void)registerLegacyComponentData:(Class)moduleClass inBridge:(RCTBridge *)bridge
++{
++  // Hacky way to get a dictionary with `RCTComponentData` from UIManager.
++  NSMutableDictionary<NSString *, RCTComponentData *> *componentDataByName = [bridge.uiManager valueForKey:@"_componentDataByName"];
++  NSString *className = NSStringFromClass(moduleClass);
++
++  if ([moduleClass isSubclassOfClass:[RCTViewManager class]] && !componentDataByName[className]) {
++    RCTComponentData *componentData;
++    if ([componentData respondsToSelector:@selector(initWithManagerClass:bridge:eventDispatcher:)]) {
++      // Init method was changed in RN 0.65
++      componentData = [[RCTComponentData alloc] initWithManagerClass:moduleClass bridge:bridge eventDispatcher:bridge.eventDispatcher];
++    } else {
++      // fallback for older RNs
++      componentData = [[RCTComponentData alloc] initWithManagerClass:moduleClass bridge:bridge];
+     }
++    componentDataByName[className] = componentData;
+   }
+ }
+ 
+@@ -384,10 +416,15 @@ - (void)assignExportedMethodsKeys:(NSMutableArray<NSMutableDictionary<const NSSt
+  */
+ - (void)installExpoTurboModules
+ {
+-  facebook::jsi::Runtime *runtime = [_bridge respondsToSelector:@selector(runtime)] ? reinterpret_cast<facebook::jsi::Runtime *>(_bridge.runtime) : NULL;
++  facebook::jsi::Runtime *jsiRuntime = [_bridge respondsToSelector:@selector(runtime)] ? reinterpret_cast<facebook::jsi::Runtime *>(_bridge.runtime) : nullptr;
++
++  if (jsiRuntime) {
++    JavaScriptRuntime *runtime = [[JavaScriptRuntime alloc] initWithRuntime:*jsiRuntime callInvoker:_bridge.jsCallInvoker];
++
++    [JavaScriptRuntimeManager installExpoModulesToRuntime:runtime withSwiftInterop:_swiftInteropBridge];
++    [_swiftInteropBridge setRuntime:runtime];
+ 
+-  if (runtime) {
+-    expo::installRuntimeObjects(*runtime, _bridge.jsCallInvoker, self);
++    expo::installRuntimeObjects(*jsiRuntime, _bridge.jsCallInvoker, self);
+   }
+ }
+ 
+diff --git a/node_modules/expo-modules-core/ios/RCTComponentData+Privates.h b/node_modules/expo-modules-core/ios/RCTComponentData+Privates.h
+new file mode 100644
+index 0000000..0968b91
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/RCTComponentData+Privates.h
+@@ -0,0 +1,12 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
++
++#import <React/RCTComponent.h>
++#import <React/RCTComponentData.h>
++
++typedef void (^RCTPropBlockAlias)(id<RCTComponent> _Nonnull view, id _Nullable json);
++
++@interface RCTComponentData (Privates)
++
++- (nonnull RCTPropBlockAlias)createPropBlock:(nonnull NSString *)name isShadowView:(BOOL)isShadowView;
++
++@end
+diff --git a/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegate.swift b/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegate.swift
+index 605337b..09e5a68 100644
+--- a/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegate.swift
++++ b/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegate.swift
+@@ -12,7 +12,7 @@ public class ExpoReactDelegate: NSObject {
+   }
+ 
+   @objc
+-  public func createBridge(delegate: RCTBridgeDelegate, launchOptions: [AnyHashable : Any]?) -> RCTBridge {
++  public func createBridge(delegate: RCTBridgeDelegate, launchOptions: [AnyHashable: Any]?) -> RCTBridge {
+     self.handlers.forEach { $0.bridgeWillCreate() }
+     let result = self.handlers.lazy
+       .compactMap { $0.createBridge(reactDelegate: self, bridgeDelegate: delegate, launchOptions: launchOptions) }
+@@ -22,7 +22,7 @@ public class ExpoReactDelegate: NSObject {
+   }
+ 
+   @objc
+-  public func createRootView(bridge: RCTBridge, moduleName: String, initialProperties: [AnyHashable : Any]?) -> RCTRootView {
++  public func createRootView(bridge: RCTBridge, moduleName: String, initialProperties: [AnyHashable: Any]?) -> RCTRootView {
+     return self.handlers.lazy
+       .compactMap { $0.createRootView(reactDelegate: self, bridge: bridge, moduleName: moduleName, initialProperties: initialProperties) }
+       .first(where: { _ in true }) ?? RCTRootView(bridge: bridge, moduleName: moduleName, initialProperties: initialProperties)
+diff --git a/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegateHandler.swift b/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegateHandler.swift
+index 2497206..0c7ef1c 100644
+--- a/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegateHandler.swift
++++ b/node_modules/expo-modules-core/ios/ReactDelegates/ExpoReactDelegateHandler.swift
+@@ -14,7 +14,7 @@ open class ExpoReactDelegateHandler: NSObject {
+    Otherwise return nil.
+    */
+   @objc
+-  open func createBridge(reactDelegate: ExpoReactDelegate, bridgeDelegate: RCTBridgeDelegate, launchOptions: [AnyHashable : Any]?) -> RCTBridge? {
++  open func createBridge(reactDelegate: ExpoReactDelegate, bridgeDelegate: RCTBridgeDelegate, launchOptions: [AnyHashable: Any]?) -> RCTBridge? {
+     return nil
+   }
+ 
+@@ -23,7 +23,7 @@ open class ExpoReactDelegateHandler: NSObject {
+    Otherwise return nil.
+    */
+   @objc
+-  open func createRootView(reactDelegate: ExpoReactDelegate, bridge: RCTBridge, moduleName: String, initialProperties: [AnyHashable : Any]?) -> RCTRootView? {
++  open func createRootView(reactDelegate: ExpoReactDelegate, bridge: RCTBridge, moduleName: String, initialProperties: [AnyHashable: Any]?) -> RCTRootView? {
+     return nil
+   }
+ 
+@@ -36,7 +36,7 @@ open class ExpoReactDelegateHandler: NSObject {
+     return nil
+   }
+ 
+-  // MARK - event callbacks
++  // MARK: - event callbacks
+ 
+   /**
+    Callback before bridge creation
+diff --git a/node_modules/expo-modules-core/ios/ReactDelegates/ModulePriorities.swift b/node_modules/expo-modules-core/ios/ReactDelegates/ModulePriorities.swift
+index cb9bd66..ff078ec 100644
+--- a/node_modules/expo-modules-core/ios/ReactDelegates/ModulePriorities.swift
++++ b/node_modules/expo-modules-core/ios/ReactDelegates/ModulePriorities.swift
+@@ -11,7 +11,7 @@ internal struct ModulePriorities {
+     // key: node package name
+     // value: priority value, the higher value takes precedence
+     "expo-screen-orientation": 10,
+-    "expo-updates": 5,
++    "expo-updates": 5
+   ]
+ 
+   static func get(_ packageName: String) -> Int {
+diff --git a/node_modules/expo-modules-core/ios/Swift/AppContext.swift b/node_modules/expo-modules-core/ios/Swift/AppContext.swift
+index 63a046f..3863d08 100644
+--- a/node_modules/expo-modules-core/ios/Swift/AppContext.swift
++++ b/node_modules/expo-modules-core/ios/Swift/AppContext.swift
+@@ -13,6 +13,25 @@ public final class AppContext {
+    */
+   public private(set) var legacyModuleRegistry: EXModuleRegistry?
+ 
++  /**
++   React bridge of the context's app.
++   */
++  public internal(set) weak var reactBridge: RCTBridge?
++
++  /**
++   JSI runtime of the running app.
++   */
++  public internal(set) var runtime: JavaScriptRuntime? {
++    didSet {
++      // When the runtime is unpinned from the context (e.g. deallocated),
++      // we should make sure to release all JS objects from the memory.
++      // Otherwise the JSCRuntime asserts may fail on deallocation.
++      if runtime == nil {
++        releaseRuntimeObjects()
++      }
++    }
++  }
++
+   /**
+    Designated initializer without modules provider.
+    */
+@@ -85,7 +104,7 @@ public final class AppContext {
+     [
+       UIApplication.willEnterForegroundNotification,
+       UIApplication.didBecomeActiveNotification,
+-      UIApplication.didEnterBackgroundNotification,
++      UIApplication.didEnterBackgroundNotification
+     ].forEach { name in
+       NotificationCenter.default.addObserver(self, selector: #selector(handleClientAppNotification(_:)), name: name, object: nil)
+     }
+@@ -108,6 +127,19 @@ public final class AppContext {
+     }
+   }
+ 
++  // MARK: - Runtime
++
++  /**
++   Unsets runtime objects that we hold for each module.
++   */
++  private func releaseRuntimeObjects() {
++    for module in moduleRegistry {
++      module.javaScriptObject = nil
++    }
++  }
++
++  // MARK: - Deallocation
++
+   /**
+    Cleans things up before deallocation.
+    */
+diff --git a/node_modules/expo-modules-core/ios/Swift/Arguments/ArgumentType.swift b/node_modules/expo-modules-core/ios/Swift/Arguments/ArgumentType.swift
+index 0be111c..41f93b8 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Arguments/ArgumentType.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Arguments/ArgumentType.swift
+@@ -1,5 +1,9 @@
+ // Copyright 2021-present 650 Industries. All rights reserved.
+ 
++// Function names should start with a lowercase character, but in this one case
++// we want it to be uppercase as we treat it more like a generic class.
++// swiftlint:disable identifier_name
++
+ /**
+  Factory creating an instance of the argument type wrapper conforming to `AnyArgumentType`.
+  Depending on the given type, it may return one of `ArrayArgumentType`, `OptionalArgumentType`, `ConvertibleArgumentType`, etc.
+diff --git a/node_modules/expo-modules-core/ios/Swift/Arguments/Convertibles.swift b/node_modules/expo-modules-core/ios/Swift/Arguments/Convertibles.swift
+index c28aa52..6c031b3 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Arguments/Convertibles.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Arguments/Convertibles.swift
+@@ -3,11 +3,11 @@
+ import UIKit
+ import CoreGraphics
+ 
+-/// Here we extend some common iOS types to implement `ConvertibleArgument` protocol and
+-/// describe how they can be converted from primitive types received from JavaScript runtime.
+-/// This allows these types to be used as argument types of functions callable from JavaScript.
+-/// As an example, when the `CGPoint` type is used as an argument type, its instance can be
+-/// created from an array of two doubles or an object with `x` and `y` fields.
++// Here we extend some common iOS types to implement `ConvertibleArgument` protocol and
++// describe how they can be converted from primitive types received from JavaScript runtime.
++// This allows these types to be used as argument types of functions callable from JavaScript.
++// As an example, when the `CGPoint` type is used as an argument type, its instance can be
++// created from an array of two doubles or an object with `x` and `y` fields.
+ 
+ // MARK: - Foundation
+ 
+diff --git a/node_modules/expo-modules-core/ios/Swift/Conversions.swift b/node_modules/expo-modules-core/ios/Swift/Conversions.swift
+index 2d3365f..4ae9725 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Conversions.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Conversions.swift
+@@ -1,10 +1,9 @@
+-
+ internal final class Conversions {
+   /**
+    Converts an array to tuple. Because of tuples nature, it's not possible to convert an array of any size, so we can support only up to some fixed size.
+    */
+   static func toTuple(_ array: [Any?]) throws -> Any? {
+-    switch (array.count) {
++    switch array.count {
+     case 0:
+       return ()
+     case 1:
+@@ -68,10 +67,10 @@ internal final class Conversions {
+         result.invalidKeys.append(key)
+       }
+     }
+-    if result.missingKeys.count > 0 {
++    if !result.missingKeys.isEmpty {
+       throw MissingKeysError<ValueType>(keys: result.missingKeys)
+     }
+-    if result.invalidKeys.count > 0 {
++    if !result.invalidKeys.isEmpty {
+       throw CastingValuesError<ValueType>(keys: result.invalidKeys)
+     }
+     return result.values
+diff --git a/node_modules/expo-modules-core/ios/Swift/EventListener.swift b/node_modules/expo-modules-core/ios/Swift/EventListener.swift
+index 50d214e..71a1cff 100644
+--- a/node_modules/expo-modules-core/ios/Swift/EventListener.swift
++++ b/node_modules/expo-modules-core/ios/Swift/EventListener.swift
+@@ -10,7 +10,7 @@ internal struct EventListener: AnyDefinition {
+    */
+   init(_ name: EventName, _ listener: @escaping () -> Void) {
+     self.name = name
+-    self.call = { (sender, payload) in listener() }
++    self.call = { _, _ in listener() }
+   }
+ 
+   /**
+@@ -18,7 +18,7 @@ internal struct EventListener: AnyDefinition {
+    */
+   init<Sender>(_ name: EventName, _ listener: @escaping (Sender) -> Void) {
+     self.name = name
+-    self.call = { (sender, payload) in
++    self.call = { sender, _ in
+       guard let sender = sender as? Sender else {
+         throw InvalidSenderTypeError(eventName: name, senderType: Sender.self)
+       }
+@@ -31,7 +31,7 @@ internal struct EventListener: AnyDefinition {
+    */
+   init<Sender, PayloadType>(_ name: EventName, _ listener: @escaping (Sender, PayloadType?) -> Void) {
+     self.name = name
+-    self.call = { (sender, payload) in
++    self.call = { sender, payload in
+       guard let sender = sender as? Sender else {
+         throw InvalidSenderTypeError(eventName: name, senderType: Sender.self)
+       }
+diff --git a/node_modules/expo-modules-core/ios/Swift/Events/Callback.swift b/node_modules/expo-modules-core/ios/Swift/Events/Callback.swift
+new file mode 100644
+index 0000000..de36fc6
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Events/Callback.swift
+@@ -0,0 +1,66 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
++
++/**
++ An alias for type-erased callback handler.
++ */
++typealias AnyCallbackHandlerType = (Any) -> Void
++
++/**
++ Public type-erased protocol that `Callback` object conforms to.
++ */
++public protocol AnyCallback {
++  /**
++   Initializes an empty callback (no-op).
++   */
++  init()
++}
++
++/**
++ Internal type-erased protocol for `Callback` object.
++ */
++internal protocol AnyCallbackInternal: AnyCallback {
++  /**
++   Sets the callback handler. By default the callback
++   is not settled which means it has no handler, thus is no-op.
++   */
++  func settle(_ handler: @escaping AnyCallbackHandlerType)
++
++  /**
++   Invalidates the callback, making its handler no-op.
++   */
++  func invalidate()
++}
++
++/**
++ Callable object that represents a JavaScript function.
++ */
++public class Callback<ArgType>: AnyCallback, AnyCallbackInternal {
++  /**
++   The underlying closure to invoke when the callback is called.
++   */
++  private var handler: AnyCallbackHandlerType?
++
++  // MARK: AnyCallback
++
++  public required init() {}
++
++  // MARK: AnyCallbackInternal
++
++  internal func settle(_ handler: @escaping AnyCallbackHandlerType) {
++    self.handler = handler
++  }
++
++  internal func invalidate() {
++    self.handler = nil
++  }
++
++  // MARK: Calling as function
++
++  /**
++   Allows the callback instance to be called as a function.
++   */
++  public func callAsFunction(_ arg: ArgType) {
++    // TODO: Convert records to dictionaries (@tsapeta)
++    handler?(arg as Any)
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Events/Event.swift b/node_modules/expo-modules-core/ios/Swift/Events/Event.swift
+new file mode 100644
+index 0000000..0c8acc0
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Events/Event.swift
+@@ -0,0 +1,43 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
++
++/**
++ Internal type-erased protocol for the instances of the `Event` property wrapper.
++ */
++internal protocol AnyEventInternal {
++  /**
++   Sets the handler on the wrapped callback.
++   */
++  func settle(_ handler: @escaping AnyCallbackHandlerType)
++
++  /**
++   Invalidates the callback.
++   */
++  func invalidate()
++}
++
++/**
++ The class used as a property wrapper on view's or object's callbacks.
++ */
++@propertyWrapper
++public final class Event<CallbackType: AnyCallback>: AnyEventInternal {
++  public var wrappedValue: CallbackType
++
++  /**
++   The property wrapper initializer. The wrapped value falls back to the empty callback.
++   */
++  public init(wrappedValue: CallbackType = CallbackType()) {
++    self.wrappedValue = wrappedValue
++  }
++
++  internal func settle(_ handler: @escaping AnyCallbackHandlerType) {
++    if let callback = wrappedValue as? AnyCallbackInternal {
++      callback.settle(handler)
++    }
++  }
++
++  internal func invalidate() {
++    if let callback = wrappedValue as? AnyCallbackInternal {
++      callback.invalidate()
++    }
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Exceptions/ChainableException.swift b/node_modules/expo-modules-core/ios/Swift/Exceptions/ChainableException.swift
+new file mode 100644
+index 0000000..1ee2e55
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Exceptions/ChainableException.swift
+@@ -0,0 +1,51 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++/**
++ An exception that may have been caused by another error.
++ */
++public protocol ChainableException: Error, AnyObject {
++  /**
++   The direct cause of the exception.
++   */
++  var cause: Error? { get set }
++
++  /**
++   The first error that started the chain of exceptions.
++   */
++  var rootCause: Error? { get }
++
++  /**
++   Sets the direct cause of the exception and returns itself.
++   */
++  func causedBy(_ error: Error) -> Self
++
++  /**
++   Tells whether any of the cause in chain is of given type.
++   */
++  func isCausedBy<ErrorType: Error>(_ errorType: ErrorType.Type) -> Bool
++}
++
++public extension ChainableException {
++  var rootCause: Error? {
++    if let cause = cause as? ChainableException {
++      return cause.rootCause ?? cause
++    }
++    return cause
++  }
++
++  @discardableResult
++  func causedBy(_ error: Error) -> Self {
++    cause = error
++    return self
++  }
++
++  func isCausedBy<ErrorType: Error>(_ errorType: ErrorType.Type) -> Bool {
++    if cause is ErrorType {
++      return true
++    }
++    if let cause = cause as? ChainableException {
++      return cause.isCausedBy(errorType)
++    }
++    return false
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/CodedError.swift b/node_modules/expo-modules-core/ios/Swift/Exceptions/CodedError.swift
+similarity index 94%
+rename from node_modules/expo-modules-core/ios/Swift/CodedError.swift
+rename to node_modules/expo-modules-core/ios/Swift/Exceptions/CodedError.swift
+index 3ba16fd..c1df63f 100644
+--- a/node_modules/expo-modules-core/ios/Swift/CodedError.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Exceptions/CodedError.swift
+@@ -18,7 +18,7 @@ public extension CodedError {
+    */
+   var code: String {
+     let className = String(describing: type(of: self))
+-      .replacingOccurrences(of: #"(Error)?(<.*>)?$"#, with: "", options: .regularExpression)
++      .replacingOccurrences(of: #"(Error|Exception)?(<.*>)?$"#, with: "", options: .regularExpression)
+     let regex = try! NSRegularExpression(pattern: "(.)([A-Z])", options: [])
+     let range = NSRange(location: 0, length: className.count)
+ 
+diff --git a/node_modules/expo-modules-core/ios/Swift/Exceptions/Exception.swift b/node_modules/expo-modules-core/ios/Swift/Exceptions/Exception.swift
+new file mode 100644
+index 0000000..38ef973
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Exceptions/Exception.swift
+@@ -0,0 +1,62 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++open class Exception: CodedError, ChainableException, CustomStringConvertible, CustomDebugStringConvertible {
++  open var name: String {
++    return String(describing: Self.self)
++  }
++
++  /**
++   String describing the reason of the exception.
++   */
++  open var reason: String {
++    "undefined reason"
++  }
++
++  /**
++   The origin in code where the exception was created.
++   */
++  open var origin: ExceptionOrigin
++
++  /**
++   The default initializer that captures the place in the code where the exception was created.
++   - Warning: Call it only without arguments!
++   */
++  public init(file: String = #fileID, line: UInt = #line, function: String = #function) {
++    self.origin = ExceptionOrigin(file: file, line: line, function: function)
++  }
++
++  // MARK: ChainableException
++
++  open var cause: Error?
++
++  // MARK: CustomStringConvertible
++
++  open var description: String {
++    return concatDescription(reason, withCause: cause, debug: false)
++  }
++
++  // MARK: CustomDebugStringConvertible
++
++  open var debugDescription: String {
++    let debugDescription = "\(name): \(reason) (at \(origin.file):\(origin.line))"
++    return concatDescription(debugDescription, withCause: cause, debug: true)
++  }
++}
++
++/**
++ Concatenates the exception description with its cause description.
++ */
++private func concatDescription(_ description: String, withCause cause: Error?, debug: Bool = false) -> String {
++  let causeSeparator = "\n→ Caused by: "
++  switch cause {
++  case let cause as Exception:
++    return description + causeSeparator + (debug ? cause.debugDescription : cause.description)
++  case let cause as CodedError:
++    // `CodedError` is deprecated but we need to provide backwards compatibility as some modules already used it.
++    return description + causeSeparator + cause.description
++  case let cause?:
++    return description + causeSeparator + cause.localizedDescription
++  default:
++    return description
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Exceptions/ExceptionOrigin.swift b/node_modules/expo-modules-core/ios/Swift/Exceptions/ExceptionOrigin.swift
+new file mode 100644
+index 0000000..d78a77a
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Exceptions/ExceptionOrigin.swift
+@@ -0,0 +1,28 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++/**
++ Represents the place in code where the exception was created.
++ */
++public struct ExceptionOrigin: CustomStringConvertible {
++  /**
++   The path to the file in which the exception was created.
++   */
++  let file: String
++
++  /**
++   The line number on which the exception was created.
++   */
++  let line: UInt
++
++  /**
++   The name (selector) of the declaration in which the exception was created.
++   */
++  let function: String
++
++  /**
++   Stringified representation of the exception origin.
++   */
++  public var description: String {
++    "at \(file):\(line) in \(function)"
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Exceptions/GenericException.swift b/node_modules/expo-modules-core/ios/Swift/Exceptions/GenericException.swift
+new file mode 100644
+index 0000000..e835485
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Exceptions/GenericException.swift
+@@ -0,0 +1,20 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++/**
++ The exception that needs some additional parameters to be best described.
++ */
++open class GenericException<ParamsType>: Exception {
++  /**
++   The additional parameters passed to the initializer.
++   */
++  public let params: ParamsType
++
++  /**
++   The default initializer that takes a tuple of params and captures the place in the code where the exception was created.
++   - Warning: Call it only with one argument!
++   */
++  public init(_ params: ParamsType, file: String = #fileID, line: UInt = #line, function: String = #function) {
++    self.params = params
++    super.init(file: file, line: line, function: function)
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Functions/AnyFunction.swift b/node_modules/expo-modules-core/ios/Swift/Functions/AnyFunction.swift
+index 0c0efd7..fc4dee8 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Functions/AnyFunction.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Functions/AnyFunction.swift
+@@ -24,10 +24,15 @@ public protocol AnyFunction: AnyDefinition {
+    */
+   var queue: DispatchQueue? { get }
+ 
++  /**
++   Whether the function needs to be called asynchronously from JavaScript.
++   */
++  var isAsync: Bool { get }
++
+   /**
+    Calls the function on given module with arguments and a promise.
+    */
+-  func call(args: [Any], promise: Promise) -> Void
++  func call(args: [Any], promise: Promise)
+ 
+   /**
+    Synchronously calls the function with given arguments. If the function takes a promise,
+@@ -39,4 +44,9 @@ public protocol AnyFunction: AnyDefinition {
+    Specifies on which queue the function should run.
+    */
+   func runOnQueue(_ queue: DispatchQueue?) -> Self
++
++  /**
++   Makes the JavaScript function synchronous.
++   */
++  func runSynchronously() -> Self
+ }
+diff --git a/node_modules/expo-modules-core/ios/Swift/Functions/ConcreteFunction.swift b/node_modules/expo-modules-core/ios/Swift/Functions/ConcreteFunction.swift
+index 1a56229..cc7ad8f 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Functions/ConcreteFunction.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Functions/ConcreteFunction.swift
+@@ -1,7 +1,7 @@
+ import Dispatch
+ 
+ public final class ConcreteFunction<Args, ReturnType>: AnyFunction {
+-  public typealias ClosureType = (Args) -> ReturnType
++  public typealias ClosureType = (Args) throws -> ReturnType
+ 
+   public let name: String
+ 
+@@ -15,6 +15,8 @@ public final class ConcreteFunction<Args, ReturnType>: AnyFunction {
+ 
+   public var queue: DispatchQueue?
+ 
++  public var isAsync: Bool = true
++
+   let closure: ClosureType
+ 
+   let argTypes: [AnyArgumentType]
+@@ -41,9 +43,9 @@ public final class ConcreteFunction<Args, ReturnType>: AnyFunction {
+       }
+ 
+       let tuple = try Conversions.toTuple(finalArgs) as! Args
+-      returnedValue = closure(tuple)
++      returnedValue = try closure(tuple)
+     } catch let error as CodedError {
+-      promise.reject(error)
++      promise.reject(FunctionCallException(name).causedBy(error))
+       return
+     } catch let error {
+       promise.reject(UnexpectedError(error))
+@@ -62,7 +64,7 @@ public final class ConcreteFunction<Args, ReturnType>: AnyFunction {
+       let promise = Promise {
+         result = $0
+         semaphore.signal()
+-      } rejecter: { error in
++      } rejecter: { _ in
+         semaphore.signal()
+       }
+       call(args: args, promise: promise)
+@@ -72,7 +74,7 @@ public final class ConcreteFunction<Args, ReturnType>: AnyFunction {
+       do {
+         let finalArgs = try castArguments(args)
+         let tuple = try Conversions.toTuple(finalArgs) as! Args
+-        return closure(tuple)
++        return try closure(tuple)
+       } catch let error {
+         return error
+       }
+@@ -84,27 +86,46 @@ public final class ConcreteFunction<Args, ReturnType>: AnyFunction {
+     return self
+   }
+ 
++  public func runSynchronously() -> Self {
++    self.isAsync = false
++    return self
++  }
++
+   private func argumentType(atIndex index: Int) -> AnyArgumentType? {
+     return (0..<argTypes.count).contains(index) ? argTypes[index] : nil
+   }
+ 
+   private func castArguments(_ args: [Any]) throws -> [Any] {
+     if args.count != argumentsCount {
+-      throw InvalidArgsNumberError(received: args.count, expected: argumentsCount)
++      throw InvalidArgsNumberException((received: args.count, expected: argumentsCount))
+     }
+-    return try args.enumerated().map { (index, arg) in
++    return try args.enumerated().map { index, arg in
+       let expectedType = argumentType(atIndex: index)
+ 
+-      // It's safe to unwrap since the arguments count matches.
+-      return try expectedType!.cast(arg)
++      do {
++        // It's safe to unwrap since the arguments count matches.
++        return try expectedType!.cast(arg)
++      } catch {
++        throw ArgumentCastException((index: index, type: expectedType!)).causedBy(error)
++      }
+     }
+   }
+ }
+ 
+-internal struct InvalidArgsNumberError: CodedError {
+-  let received: Int
+-  let expected: Int
+-  var description: String {
+-    "Received \(received) arguments, but \(expected) was expected."
++internal class InvalidArgsNumberException: GenericException<(received: Int, expected: Int)> {
++  override var reason: String {
++    "Received \(params.received) arguments, but \(params.expected) was expected."
++  }
++}
++
++internal class ArgumentCastException: GenericException<(index: Int, type: AnyArgumentType)> {
++  override var reason: String {
++    "Argument at index '\(params.index)' couldn't be casted to type '\(params.type.description)'."
++  }
++}
++
++internal class FunctionCallException: GenericException<String> {
++  override var reason: String {
++    "Call to function '\(params)' has been rejected."
+   }
+ }
+diff --git a/node_modules/expo-modules-core/ios/Swift/JavaScriptUtils.swift b/node_modules/expo-modules-core/ios/Swift/JavaScriptUtils.swift
+new file mode 100644
+index 0000000..d56d68c
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/JavaScriptUtils.swift
+@@ -0,0 +1,43 @@
++// Copyright 2022-present 650 Industries. All rights reserved.
++
++// FIXME: Calling module's functions needs solid refactoring to not reference the module holder.
++// Instead, it should be possible to directly call the function instance from here. (added by @tsapeta)
++
++/**
++ Creates a block that is executed when the module's async function is called.
++ */
++internal func createAsyncFunctionBlock(holder: ModuleHolder, name functionName: String) -> JSAsyncFunctionBlock {
++  let moduleName = holder.name
++  return { [weak holder, moduleName] args, resolve, reject in
++    guard let holder = holder else {
++      let exception = ModuleUnavailableException(moduleName)
++      reject(exception.code, exception.description, exception)
++      return
++    }
++    holder.call(function: functionName, args: args) { result, error in
++      if let error = error {
++        reject(error.code, error.description, error)
++      } else {
++        resolve(result)
++      }
++    }
++  }
++}
++
++/**
++ Creates a block that is executed when the module's sync function is called.
++ */
++internal func createSyncFunctionBlock(holder: ModuleHolder, name functionName: String) -> JSSyncFunctionBlock {
++  return { [weak holder] args in
++    guard let holder = holder else {
++      return nil
++    }
++    return holder.callSync(function: functionName, args: args)
++  }
++}
++
++private class ModuleUnavailableException: GenericException<String> {
++  override var reason: String {
++    "Module '\(params)' is no longer available"
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/ModuleHolder.swift b/node_modules/expo-modules-core/ios/Swift/ModuleHolder.swift
+index 8b418fe..ef8829d 100644
+--- a/node_modules/expo-modules-core/ios/Swift/ModuleHolder.swift
++++ b/node_modules/expo-modules-core/ios/Swift/ModuleHolder.swift
+@@ -14,6 +14,11 @@ public final class ModuleHolder {
+    */
+   private(set) weak var appContext: AppContext?
+ 
++  /**
++   JavaScript object that represents the module instance in the runtime.
++   */
++  public internal(set) lazy var javaScriptObject: JavaScriptObject? = createJavaScriptModuleObject()
++
+   /**
+    Caches the definition of the module type.
+    */
+@@ -26,6 +31,13 @@ public final class ModuleHolder {
+     return definition.name.isEmpty ? String(describing: type(of: module)) : definition.name
+   }
+ 
++  /**
++   Shortcut to get the underlying view manager definition.
++   */
++  var viewManager: ViewManagerDefinition? {
++    return definition.viewManager
++  }
++
+   /**
+    Number of JavaScript listeners attached to the module.
+    */
+@@ -85,6 +97,36 @@ public final class ModuleHolder {
+     return nil
+   }
+ 
++  // MARK: JavaScript Module Object
++
++  /**
++   Creates the JavaScript object that will be used to communicate with the native module.
++   The object is prefilled with module's constants and functions.
++   JavaScript can access it through `global.ExpoModules[moduleName]`.
++   - Note: The object will be `nil` when the runtime is unavailable (e.g. remote debugger is enabled).
++   */
++  private func createJavaScriptModuleObject() -> JavaScriptObject? {
++    // It might be impossible to create any object at the moment (e.g. remote debugging, app context destroyed)
++    guard let object = appContext?.runtime?.createObject() else {
++      return nil
++    }
++
++    // Fill in with constants
++    for (key, value) in getConstants() {
++      object[key] = value
++    }
++
++    // Fill in with functions
++    for (_, fn) in definition.functions {
++      if fn.isAsync {
++        object.setAsyncFunction(fn.name, argsCount: fn.argumentsCount, block: createAsyncFunctionBlock(holder: self, name: fn.name))
++      } else {
++        object.setSyncFunction(fn.name, argsCount: fn.argumentsCount, block: createSyncFunctionBlock(holder: self, name: fn.name))
++      }
++    }
++    return object
++  }
++
+   // MARK: Listening to native events
+ 
+   func listeners(forEvent event: EventName) -> [EventListener] {
+@@ -112,9 +154,9 @@ public final class ModuleHolder {
+    */
+   func modifyListenersCount(_ count: Int) {
+     if count > 0 && listenersCount == 0 {
+-      let _ = definition.functions["startObserving"]?.callSync(args: [])
++      _ = definition.functions["startObserving"]?.callSync(args: [])
+     } else if count < 0 && listenersCount + count <= 0 {
+-      let _ = definition.functions["stopObserving"]?.callSync(args: [])
++      _ = definition.functions["stopObserving"]?.callSync(args: [])
+     }
+     listenersCount = max(0, listenersCount + count)
+   }
+diff --git a/node_modules/expo-modules-core/ios/Swift/ModuleRegistry.swift b/node_modules/expo-modules-core/ios/Swift/ModuleRegistry.swift
+index fc02c21..eb81263 100644
+--- a/node_modules/expo-modules-core/ios/Swift/ModuleRegistry.swift
++++ b/node_modules/expo-modules-core/ios/Swift/ModuleRegistry.swift
+@@ -1,4 +1,3 @@
+-
+ public final class ModuleRegistry: Sequence {
+   public typealias Element = ModuleHolder
+ 
+@@ -63,6 +62,10 @@ public final class ModuleRegistry: Sequence {
+     return registry[moduleName]?.module
+   }
+ 
++  public func getModuleNames() -> [String] {
++    return Array(registry.keys)
++  }
++
+   public func makeIterator() -> IndexingIterator<[ModuleHolder]> {
+     return registry.map({ $1 }).makeIterator()
+   }
+diff --git a/node_modules/expo-modules-core/ios/Swift/Modules/AnyModule.swift b/node_modules/expo-modules-core/ios/Swift/Modules/AnyModule.swift
+index 48850e0..67bc295 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Modules/AnyModule.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Modules/AnyModule.swift
+@@ -1,4 +1,3 @@
+-
+ /**
+  A protocol for any type-erased module that provides functions used by the core.
+  */
+diff --git a/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinition.swift b/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinition.swift
+index 01cfee0..c4e7795 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinition.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinition.swift
+@@ -1,4 +1,3 @@
+-
+ /**
+  A protocol that must be implemented to be a part of module's definition and the module definition itself.
+  */
+@@ -9,7 +8,7 @@ public protocol AnyDefinition {}
+  of the module and what it exports to the JavaScript world.
+  See `ModuleDefinitionBuilder` for more details on how to create it.
+  */
+-public final class ModuleDefinition: AnyDefinition {
++public final class ModuleDefinition: ObjectDefinition {
+   /**
+    The module's type associated with the definition. It's used to create the module instance.
+    */
+@@ -20,8 +19,6 @@ public final class ModuleDefinition: AnyDefinition {
+    */
+   var name: String
+ 
+-  let functions: [String : AnyFunction]
+-  let constants: [ConstantsDefinition]
+   let eventListeners: [EventListener]
+   let viewManager: ViewManagerDefinition?
+ 
+@@ -33,20 +30,12 @@ public final class ModuleDefinition: AnyDefinition {
+   /**
+    Initializer that is called by the `ModuleDefinitionBuilder` results builder.
+    */
+-  init(definitions: [AnyDefinition]) {
++  override init(definitions: [AnyDefinition]) {
+     self.name = definitions
+       .compactMap { $0 as? ModuleNameDefinition }
+       .last?
+       .name ?? ""
+ 
+-    self.functions = definitions
+-      .compactMap { $0 as? AnyFunction }
+-      .reduce(into: [String : AnyFunction]()) { dict, function in
+-        dict[function.name] = function
+-      }
+-
+-    self.constants = definitions.compactMap { $0 as? ConstantsDefinition }
+-
+     self.eventListeners = definitions.compactMap { $0 as? EventListener }
+ 
+     self.viewManager = definitions
+@@ -58,6 +47,8 @@ public final class ModuleDefinition: AnyDefinition {
+         .compactMap { ($0 as? EventsDefinition)?.names }
+         .joined()
+     )
++
++    super.init(definitions: definitions)
+   }
+ 
+   /**
+diff --git a/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionBuilder.swift b/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionBuilder.swift
+index d5a69b3..92eb2de 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionBuilder.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionBuilder.swift
+@@ -1,4 +1,3 @@
+-
+ #if swift(>=5.4)
+ /**
+  A function builder that provides DSL-like syntax. Thanks to this, the function doesn't need to explicitly return an array,
+diff --git a/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionComponents.swift b/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionComponents.swift
+index 3f0590c..959a4df 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionComponents.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Modules/ModuleDefinitionComponents.swift
+@@ -16,150 +16,6 @@ extension AnyModule {
+     return ModuleNameDefinition(name: name)
+   }
+ 
+-  // MARK: - Constants
+-
+-  /**
+-   Definition function setting the module's constants to export.
+-   */
+-  public func constants(_ body: @escaping () -> [String: Any?]) -> AnyDefinition {
+-    return ConstantsDefinition(body: body)
+-  }
+-
+-  /**
+-   Definition function setting the module's constants to export.
+-   */
+-  public func constants(_ body: @autoclosure @escaping () -> [String: Any?]) -> AnyDefinition {
+-    return ConstantsDefinition(body: body)
+-  }
+-
+-  // MARK: - Functions
+-
+-  /**
+-   Function without arguments.
+-   */
+-  public func function<R>(
+-    _ name: String,
+-    _ closure: @escaping () -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with one argument.
+-   */
+-  public func function<R, A0: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self)],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with two arguments.
+-   */
+-  public func function<R, A0: AnyArgument, A1: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0, A1) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self), ArgumentType(A1.self)],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with three arguments.
+-   */
+-  public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0, A1, A2) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self), ArgumentType(A1.self), ArgumentType(A2.self)],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with four arguments.
+-   */
+-  public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0, A1, A2, A3) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self), ArgumentType(A1.self), ArgumentType(A2.self), ArgumentType(A3.self)],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with five arguments.
+-   */
+-  public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0, A1, A2, A3, A4) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self), ArgumentType(A1.self), ArgumentType(A2.self), ArgumentType(A3.self), ArgumentType(A4.self)],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with six arguments.
+-   */
+-  public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument, A5: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0, A1, A2, A3, A4, A5) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self), ArgumentType(A1.self), ArgumentType(A2.self), ArgumentType(A3.self), ArgumentType(A4.self), ArgumentType(A5.self)],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with seven arguments.
+-   */
+-  public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument, A5: AnyArgument, A6: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0, A1, A2, A3, A4, A5, A6) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self), ArgumentType(A1.self), ArgumentType(A2.self), ArgumentType(A3.self), ArgumentType(A4.self), ArgumentType(A5.self), ArgumentType(A6.self)],
+-      closure
+-    )
+-  }
+-
+-  /**
+-   Function with eight arguments.
+-   */
+-  public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument, A5: AnyArgument, A6: AnyArgument, A7: AnyArgument>(
+-    _ name: String,
+-    _ closure: @escaping (A0, A1, A2, A3, A4, A5, A6, A7) -> R
+-  ) -> AnyFunction {
+-    return ConcreteFunction(
+-      name,
+-      argTypes: [ArgumentType(A0.self), ArgumentType(A1.self), ArgumentType(A2.self), ArgumentType(A3.self), ArgumentType(A4.self), ArgumentType(A5.self), ArgumentType(A6.self), ArgumentType(A7.self)],
+-      closure
+-    )
+-  }
+-
+   // MARK: - Module's lifecycle
+ 
+   /**
+@@ -212,50 +68,6 @@ extension AnyModule {
+   public func viewManager(@ViewManagerDefinitionBuilder _ closure: @escaping () -> ViewManagerDefinition) -> AnyDefinition {
+     return closure()
+   }
+-
+-  // MARK: - Events
+-
+-  /**
+-   Defines event names that this module can send to JavaScript.
+-   */
+-  public func events(_ names: String...) -> AnyDefinition {
+-    return EventsDefinition(names: names)
+-  }
+-
+-  /**
+-   Function that is invoked when the first event listener is added.
+-   */
+-  public func onStartObserving(_ body: @escaping () -> ()) -> AnyFunction {
+-    return ConcreteFunction("startObserving", argTypes: [], body)
+-  }
+-
+-  /**
+-   Function that is invoked when all event listeners are removed.
+-   */
+-  public func onStopObserving(_ body: @escaping () -> ()) -> AnyFunction {
+-    return ConcreteFunction("stopObserving", argTypes: [], body)
+-  }
+-}
+-
+-/**
+- Defines the factory creating a native view when the module is used as a view.
+- */
+-public func view(_ closure: @escaping () -> UIView) -> AnyDefinition {
+-  return ViewFactory(closure)
+-}
+-
+-/**
+- Creates a view prop that defines its name and setter.
+- */
+-public func prop<ViewType: UIView, PropType: AnyArgument>(
+-  _ name: String,
+-  _ setter: @escaping (ViewType, PropType) -> Void
+-) -> AnyDefinition {
+-  return ConcreteViewProp(
+-    name: name,
+-    propType: ArgumentType(PropType.self),
+-    setter: setter
+-  )
+ }
+ 
+ // TODO: - Remove deprecated `method` component once SDK44 is out.
+diff --git a/node_modules/expo-modules-core/ios/Swift/ModulesProvider.swift b/node_modules/expo-modules-core/ios/Swift/ModulesProvider.swift
+index e1b6ed6..6a0ad47 100644
+--- a/node_modules/expo-modules-core/ios/Swift/ModulesProvider.swift
++++ b/node_modules/expo-modules-core/ios/Swift/ModulesProvider.swift
+@@ -1,4 +1,3 @@
+-
+ import Foundation
+ 
+ /**
+diff --git a/node_modules/expo-modules-core/ios/Swift/Objects/ObjectDefinition.swift b/node_modules/expo-modules-core/ios/Swift/Objects/ObjectDefinition.swift
+new file mode 100644
+index 0000000..fb43e40
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Objects/ObjectDefinition.swift
+@@ -0,0 +1,30 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
++
++/**
++ Base class for other definitions representing an object, such as `ModuleDefinition`.
++ */
++public class ObjectDefinition: AnyDefinition {
++  /**
++   A dictionary of functions defined by the object.
++   */
++  let functions: [String: AnyFunction]
++
++  /**
++   An array of constants definitions.
++   */
++  let constants: [ConstantsDefinition]
++
++  /**
++   Default initializer receiving children definitions from the result builder.
++   */
++  init(definitions: [AnyDefinition]) {
++    self.functions = definitions
++      .compactMap { $0 as? AnyFunction }
++      .reduce(into: [String: AnyFunction]()) { dict, function in
++        dict[function.name] = function
++      }
++
++    self.constants = definitions
++      .compactMap { $0 as? ConstantsDefinition }
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Objects/ObjectDefinitionComponents.swift b/node_modules/expo-modules-core/ios/Swift/Objects/ObjectDefinitionComponents.swift
+new file mode 100644
+index 0000000..b07cf09
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Objects/ObjectDefinitionComponents.swift
+@@ -0,0 +1,208 @@
++/// This file implements definition components that are allowed in any object-based definition — `ObjectDefinition`.
++/// So far only constants and functions belong to plain object.
++
++// MARK: - Constants
++
++/**
++ Definition function setting the module's constants to export.
++ */
++public func constants(_ body: @escaping () -> [String: Any?]) -> AnyDefinition {
++  return ConstantsDefinition(body: body)
++}
++
++/**
++ Definition function setting the module's constants to export.
++ */
++public func constants(_ body: @autoclosure @escaping () -> [String: Any?]) -> AnyDefinition {
++  return ConstantsDefinition(body: body)
++}
++
++// MARK: - Functions
++
++/**
++ Function without arguments.
++ */
++public func function<R>(
++  _ name: String,
++  _ closure: @escaping () throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [],
++    closure
++  )
++}
++
++/**
++ Function with one argument.
++ */
++public func function<R, A0: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [ArgumentType(A0.self)],
++    closure
++  )
++}
++
++/**
++ Function with two arguments.
++ */
++public func function<R, A0: AnyArgument, A1: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0, A1) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [ArgumentType(A0.self), ArgumentType(A1.self)],
++    closure
++  )
++}
++
++/**
++ Function with three arguments.
++ */
++public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0, A1, A2) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [
++      ArgumentType(A0.self),
++      ArgumentType(A1.self),
++      ArgumentType(A2.self)
++    ],
++    closure
++  )
++}
++
++/**
++ Function with four arguments.
++ */
++public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0, A1, A2, A3) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [
++      ArgumentType(A0.self),
++      ArgumentType(A1.self),
++      ArgumentType(A2.self),
++      ArgumentType(A3.self)
++    ],
++    closure
++  )
++}
++
++/**
++ Function with five arguments.
++ */
++public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0, A1, A2, A3, A4) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [
++      ArgumentType(A0.self),
++      ArgumentType(A1.self),
++      ArgumentType(A2.self),
++      ArgumentType(A3.self),
++      ArgumentType(A4.self)
++    ],
++    closure
++  )
++}
++
++/**
++ Function with six arguments.
++ */
++public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument, A5: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0, A1, A2, A3, A4, A5) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [
++      ArgumentType(A0.self),
++      ArgumentType(A1.self),
++      ArgumentType(A2.self),
++      ArgumentType(A3.self),
++      ArgumentType(A4.self),
++      ArgumentType(A5.self)
++    ],
++    closure
++  )
++}
++
++/**
++ Function with seven arguments.
++ */
++public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument, A5: AnyArgument, A6: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0, A1, A2, A3, A4, A5, A6) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [
++      ArgumentType(A0.self),
++      ArgumentType(A1.self),
++      ArgumentType(A2.self),
++      ArgumentType(A3.self),
++      ArgumentType(A4.self),
++      ArgumentType(A5.self),
++      ArgumentType(A6.self)
++    ],
++    closure
++  )
++}
++
++/**
++ Function with eight arguments.
++ */
++public func function<R, A0: AnyArgument, A1: AnyArgument, A2: AnyArgument, A3: AnyArgument, A4: AnyArgument, A5: AnyArgument, A6: AnyArgument, A7: AnyArgument>(
++  _ name: String,
++  _ closure: @escaping (A0, A1, A2, A3, A4, A5, A6, A7) throws -> R
++) -> AnyFunction {
++  return ConcreteFunction(
++    name,
++    argTypes: [
++      ArgumentType(A0.self),
++      ArgumentType(A1.self),
++      ArgumentType(A2.self),
++      ArgumentType(A3.self),
++      ArgumentType(A4.self),
++      ArgumentType(A5.self),
++      ArgumentType(A6.self),
++      ArgumentType(A7.self)
++    ],
++    closure
++  )
++}
++
++// MARK: - Events
++
++/**
++ Defines event names that the object can send to JavaScript.
++ */
++public func events(_ names: String...) -> AnyDefinition {
++  return EventsDefinition(names: names)
++}
++
++/**
++ Function that is invoked when the first event listener is added.
++ */
++public func onStartObserving(_ body: @escaping () -> Void) -> AnyFunction {
++  return ConcreteFunction("startObserving", argTypes: [], body)
++}
++
++/**
++ Function that is invoked when all event listeners are removed.
++ */
++public func onStopObserving(_ body: @escaping () -> Void) -> AnyFunction {
++  return ConcreteFunction("stopObserving", argTypes: [], body)
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Promise.swift b/node_modules/expo-modules-core/ios/Swift/Promise.swift
+index 7656f58..d64054b 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Promise.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Promise.swift
+@@ -1,3 +1,4 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
+ 
+ public struct Promise: AnyArgument {
+   public typealias ResolveClosure = (Any?) -> Void
+@@ -11,20 +12,24 @@ public struct Promise: AnyArgument {
+    Necessary in some places not converted to Swift, such as `EXPermissionsMethodsDelegate`.
+    */
+   public var legacyRejecter: EXPromiseRejectBlock {
+-    return { code, description, error in
++    return { code, description, _ in
+       reject(code ?? "", description ?? "")
+     }
+   }
+ 
+-  public func resolve(_ value: Any? = nil) -> Void {
++  public func resolve(_ value: Any? = nil) {
+     resolver(value)
+   }
+ 
++  public func reject(_ error: Error) {
++    rejecter(UnexpectedError(error))
++  }
++
+   public func reject(_ error: CodedError) {
+     rejecter(error)
+   }
+ 
+-  public func reject(_ code: String, _ description: String) -> Void {
++  public func reject(_ code: String, _ description: String) {
+     rejecter(SimpleCodedError(code, description))
+   }
+ }
+diff --git a/node_modules/expo-modules-core/ios/Swift/Records/AnyField.swift b/node_modules/expo-modules-core/ios/Swift/Records/AnyField.swift
+index 5194c7f..0c63517 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Records/AnyField.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Records/AnyField.swift
+@@ -12,5 +12,12 @@ internal protocol AnyFieldInternal: AnyField {
+   var key: String? { get }
+   var options: Set<FieldOption> { get set }
+ 
++  /**
++   Whether the value for this field must be explicitly provided.
++   The record throws an error when the source dictionary is missing a required value.
++   Note that it's NOT the opposite to `isOptional`.
++   */
++  var isRequired: Bool { get }
++
+   func set(_ newValue: Any?) throws
+ }
+diff --git a/node_modules/expo-modules-core/ios/Swift/Records/Field.swift b/node_modules/expo-modules-core/ios/Swift/Records/Field.swift
+index 2cfc177..2912079 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Records/Field.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Records/Field.swift
+@@ -8,6 +8,8 @@ public final class Field<Type>: AnyFieldInternal {
+    */
+   public var wrappedValue: Type
+ 
++  private let fieldType: AnyArgumentType = ArgumentType(Type.self)
++
+   /**
+    Field's key in the dictionary, which by default is a label of the wrapped property.
+    Sadly, property wrappers don't receive properties' label, so we must wait until it's assigned by `Record`.
+@@ -23,11 +25,13 @@ public final class Field<Type>: AnyFieldInternal {
+ 
+   /**
+    Whether the generic field type accepts `nil` values.
+-   We can't check it directly with `Optional` because it has associated type,
+-   but all optionals implement non-generic `ExpressibleByNilLiteral` protocol.
+    */
+   internal var isOptional: Bool {
+-    return Type.self is ExpressibleByNilLiteral.Type
++    return fieldType is OptionalArgumentType
++  }
++
++  internal var isRequired: Bool {
++    options.contains(.required)
+   }
+ 
+   /**
+@@ -71,29 +75,31 @@ public final class Field<Type>: AnyFieldInternal {
+    Sets the wrapped value with a value of `Any` type.
+    */
+   internal func set(_ newValue: Any?) throws {
+-    if newValue == nil && (!isOptional || options.contains(.required)) {
+-      throw FieldRequiredError(fieldKey: key!)
++    if newValue == nil && (!isOptional || isRequired) {
++      throw FieldRequiredException(key!)
+     }
+-    if let value = newValue as? Type {
+-      wrappedValue = value
+-      return
++    do {
++      if let value = try fieldType.cast(newValue) as? Type {
++        wrappedValue = value
++      }
++    } catch {
++      throw FieldInvalidTypeException((fieldKey: key!, value: newValue, desiredType: Type.self)).causedBy(error)
+     }
+-    throw FieldInvalidTypeError(fieldKey: key!, value: newValue, desiredType: Type.self)
+   }
+ }
+ 
+-internal struct FieldRequiredError: CodedError {
+-  let fieldKey: String
+-  var description: String {
+-    "Value for field `\(fieldKey)` is required, got `nil`"
++internal class FieldRequiredException: GenericException<String> {
++  override var reason: String {
++    "Value for field '\(params)' is required, got nil."
+   }
+ }
+ 
+-internal struct FieldInvalidTypeError: CodedError {
+-  let fieldKey: String
+-  let value: Any?
+-  let desiredType: Any.Type
+-  var description: String {
+-    "Cannot cast value `\(String(describing: value!))` (\(type(of: value!))) for field `\(fieldKey)` (\(String(describing: desiredType)))"
++internal class FieldInvalidTypeException: GenericException<(fieldKey: String, value: Any?, desiredType: Any.Type)> {
++  override var reason: String {
++    let value = String(describing: params.value!)
++    let valueType = type(of: params.value!)
++    let desiredType = String(describing: params.desiredType)
++
++    return "Cannot cast value '\(value)' (\(valueType)) for field '\(params.fieldKey)' (\(desiredType))"
+   }
+ }
+diff --git a/node_modules/expo-modules-core/ios/Swift/Records/FieldOption.swift b/node_modules/expo-modules-core/ios/Swift/Records/FieldOption.swift
+index 11faa31..3b96da5 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Records/FieldOption.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Records/FieldOption.swift
+@@ -15,7 +15,7 @@ public struct FieldOption: Equatable, Hashable, ExpressibleByIntegerLiteral, Exp
+   /**
+    Field options are equal when their raw values and parameters are equal.
+    */
+-  public static func ==(lhs: Self, rhs: Self) -> Bool {
++  public static func == (lhs: Self, rhs: Self) -> Bool {
+     return lhs.rawValue == rhs.rawValue && lhs.key == rhs.key
+   }
+ 
+diff --git a/node_modules/expo-modules-core/ios/Swift/Records/Record.swift b/node_modules/expo-modules-core/ios/Swift/Records/Record.swift
+index 9ac7c94..3311710 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Records/Record.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Records/Record.swift
+@@ -37,8 +37,16 @@ public extension Record {
+   init(from dict: Dict) throws {
+     self.init()
+ 
++    let dictKeys = dict.keys
++
+     try fieldsOf(self).forEach { field in
+-      try field.set(dict[field.key!])
++      guard let key = field.key else {
++        // This should never happen, but just in case skip fields without the key.
++        return
++      }
++      if dictKeys.contains(key) || field.isRequired {
++        try field.set(dict[key])
++      }
+     }
+   }
+ 
+@@ -53,7 +61,7 @@ public extension Record {
+  Returns an array of fields found in record's mirror. If the field is missing the `key`,
+  it gets assigned to the property label, so after all it's safe to enforce unwrapping it (using `key!`).
+  */
+-fileprivate func fieldsOf(_ record: Record) -> [AnyFieldInternal] {
++private func fieldsOf(_ record: Record) -> [AnyFieldInternal] {
+   return Mirror(reflecting: record).children.compactMap { (label: String?, value: Any) in
+     guard var field = value as? AnyFieldInternal, let key = field.key ?? convertLabelToKey(label) else {
+       return nil
+@@ -66,6 +74,6 @@ fileprivate func fieldsOf(_ record: Record) -> [AnyFieldInternal] {
+ /**
+  Converts mirror's label to field's key by dropping the "_" prefix from wrapped property label.
+  */
+-fileprivate func convertLabelToKey(_ label: String?) -> String? {
++private func convertLabelToKey(_ label: String?) -> String? {
+   return (label != nil && label!.starts(with: "_")) ? String(label!.dropFirst()) : label
+ }
+diff --git a/node_modules/expo-modules-core/ios/Swift/SwiftInteropBridge.swift b/node_modules/expo-modules-core/ios/Swift/SwiftInteropBridge.swift
+index b9a6afe..62251a9 100644
+--- a/node_modules/expo-modules-core/ios/Swift/SwiftInteropBridge.swift
++++ b/node_modules/expo-modules-core/ios/Swift/SwiftInteropBridge.swift
+@@ -1,5 +1,7 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
+ 
+ import Foundation
++import React
+ 
+ @objc
+ public final class SwiftInteropBridge: NSObject {
+@@ -21,11 +23,18 @@ public final class SwiftInteropBridge: NSObject {
+   }
+ 
+   @objc
+-  public func callFunction(_ functionName: String,
+-                           onModule moduleName: String,
+-                           withArgs args: [Any],
+-                           resolve: @escaping EXPromiseResolveBlock,
+-                           reject: @escaping EXPromiseRejectBlock) {
++  public func setReactBridge(_ reactBridge: RCTBridge) {
++    appContext.reactBridge = reactBridge
++  }
++
++  @objc
++  public func callFunction(
++    _ functionName: String,
++    onModule moduleName: String,
++    withArgs args: [Any],
++    resolve: @escaping EXPromiseResolveBlock,
++    reject: @escaping EXPromiseRejectBlock
++  ) {
+     registry
+       .get(moduleHolderForName: moduleName)?
+       .call(function: functionName, args: args) { value, error in
+@@ -40,9 +49,11 @@ public final class SwiftInteropBridge: NSObject {
+   }
+ 
+   @objc
+-  public func callFunctionSync(_ functionName: String,
+-                               onModule moduleName: String,
+-                               withArgs args: [Any]) -> Any? {
++  public func callFunctionSync(
++    _ functionName: String,
++    onModule moduleName: String,
++    withArgs args: [Any]
++  ) -> Any? {
+     return registry
+       .get(moduleHolderForName: moduleName)?
+       .callSync(function: functionName, args: args)
+@@ -53,11 +64,11 @@ public final class SwiftInteropBridge: NSObject {
+     var constants = [String: [[String: Any]]]()
+ 
+     for holder in registry {
+-      constants[holder.name] = holder.definition.functions.map({ (functionName, function) in
++      constants[holder.name] = holder.definition.functions.map({ functionName, function in
+         return [
+           "name": functionName,
+           "argumentsCount": function.argumentsCount,
+-          "key": functionName,
++          "key": functionName
+         ]
+       })
+     }
+@@ -92,6 +103,24 @@ public final class SwiftInteropBridge: NSObject {
+     }
+   }
+ 
++  /**
++   Sets the JSI runtime on the operating `AppContext`.
++   */
++  @objc
++  public func setRuntime(_ runtime: JavaScriptRuntime?) {
++    appContext.runtime = runtime
++  }
++
++  @objc
++  public func getModuleNames() -> [String] {
++    return registry.getModuleNames()
++  }
++
++  @objc
++  public func getNativeModuleObject(_ moduleName: String) -> JavaScriptObject? {
++    return registry.get(moduleHolderForName: moduleName)?.javaScriptObject
++  }
++
+   // MARK: - Events
+ 
+   /**
+diff --git a/node_modules/expo-modules-core/ios/Swift/Views/AnyViewProp.swift b/node_modules/expo-modules-core/ios/Swift/Views/AnyViewProp.swift
+index 6741c88..af7e1f6 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Views/AnyViewProp.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Views/AnyViewProp.swift
+@@ -3,7 +3,7 @@ import UIKit
+ /**
+  Type-erased protocol for view props classes.
+  */
+-public protocol AnyViewProp: AnyDefinition {
++public protocol AnyViewProp: ViewManagerDefinitionComponent {
+   /**
+    Name of the view prop that JavaScript refers to.
+    */
+diff --git a/node_modules/expo-modules-core/ios/Swift/Views/ComponentData.swift b/node_modules/expo-modules-core/ios/Swift/Views/ComponentData.swift
+new file mode 100644
+index 0000000..c2c33bf
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Views/ComponentData.swift
+@@ -0,0 +1,96 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
++
++import React
++
++/**
++ Custom component data extending `RCTComponentData`. Its main purpose is to handle event-based props (callbacks),
++ but it also simplifies capturing the view config so we can omit some reflections that React Native executes.
++ */
++@objc(EXComponentData)
++public final class ComponentData: RCTComponentData {
++  /**
++   Weak pointer to the holder of a module that the component data was created for.
++   */
++  weak var moduleHolder: ModuleHolder?
++
++  /**
++   Initializer that additionally takes the original view module to have access to its definition.
++   */
++  @objc
++  public init(viewModule: ViewModuleWrapper, managerClass: ViewModuleWrapper.Type, bridge: RCTBridge) {
++    self.moduleHolder = viewModule.wrappedModuleHolder
++    super.init(managerClass: managerClass, bridge: bridge)
++  }
++
++  // MARK: RCTComponentData
++
++  /**
++   Creates a setter for the specific prop. For non-event props we just let React Native do its job.
++   Events are handled differently to conveniently use them in Swift.
++   */
++  public override func createPropBlock(_ propName: String, isShadowView: Bool) -> RCTPropBlockAlias {
++    // Expo Modules Core doesn't support shadow views yet, so fall back to the default implementation.
++    if isShadowView {
++      return super.createPropBlock(propName, isShadowView: isShadowView)
++    }
++
++    // If the prop is defined as an event, create our own event setter.
++    if moduleHolder?.viewManager?.eventNames.contains(propName) == true {
++      return createEventSetter(eventName: propName, bridge: self.manager?.bridge)
++    }
++
++    // Otherwise also fall back to the default implementation.
++    return super.createPropBlock(propName, isShadowView: isShadowView)
++  }
++
++  /**
++   The base `RCTComponentData` class does some Objective-C dynamic calls in this function, but we don't
++   need to do these slow operations since the Sweet API gives us necessary details without reflections.
++   */
++  public override func viewConfig() -> [String: Any] {
++    var propTypes: [String: Any] = [:]
++    var directEvents: [String] = []
++    let superClass: AnyClass? = managerClass.superclass()
++
++    if let eventNames = moduleHolder?.viewManager?.eventNames {
++      for eventName in eventNames {
++        directEvents.append(RCTNormalizeInputEventName(eventName))
++        propTypes[eventName] = "BOOL"
++      }
++    }
++
++    return [
++      "propTypes": propTypes,
++      "directEvents": directEvents,
++      "bubblingEvents": [String](),
++      "baseModuleName": superClass?.moduleName() as Any
++    ]
++  }
++}
++
++/**
++ Creates a setter for the event prop.
++ */
++private func createEventSetter(eventName: String, bridge: RCTBridge?) -> RCTPropBlockAlias {
++  return { [weak bridge] (target: RCTComponent, value: Any) in
++    // Find view's property that is named as the prop and is wrapped by `Event`.
++    let child = Mirror(reflecting: target).children.first {
++      $0.label == "_\(eventName)"
++    }
++    guard let event = child?.value as? AnyEventInternal else {
++      return
++    }
++
++    // For callbacks React Native passes a bool value whether the prop is specified or not.
++    if value as? Bool == true {
++      event.settle { [weak target] (body: Any) in
++        if let target = target {
++          let componentEvent = RCTComponentEvent(name: eventName, viewTag: target.reactTag, body: ["payload": body])
++          bridge?.eventDispatcher().send(componentEvent)
++        }
++      }
++    } else {
++      event.invalidate()
++    }
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Views/ViewFactory.swift b/node_modules/expo-modules-core/ios/Swift/Views/ViewFactory.swift
+index e11b6b9..2d7c475 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Views/ViewFactory.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Views/ViewFactory.swift
+@@ -3,7 +3,7 @@ import UIKit
+ /**
+  A definition of the view factory that creates views.
+  */
+-internal struct ViewFactory: AnyDefinition {
++internal struct ViewFactory: ViewManagerDefinitionComponent {
+   typealias FactoryClosureType = () -> UIView
+ 
+   let factory: FactoryClosureType
+diff --git a/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinition.swift b/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinition.swift
+index a363f0e..22ac919 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinition.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinition.swift
+@@ -3,7 +3,7 @@ import UIKit
+ /**
+  The definition of the view manager. It's part of the module definition to scope only view-related definitions.
+  */
+-public struct ViewManagerDefinition: AnyDefinition {
++public final class ViewManagerDefinition: ObjectDefinition {
+   /**
+    The view factory that lets us create views.
+    */
+@@ -14,13 +14,29 @@ public struct ViewManagerDefinition: AnyDefinition {
+    */
+   let props: [AnyViewProp]
+ 
+-  init(definitions: [AnyDefinition]) {
++  /**
++   Names of the events that the view can send to JavaScript.
++   */
++  let eventNames: [String]
++
++  /**
++   Default initializer receiving children definitions from the result builder.
++   */
++  override init(definitions: [AnyDefinition]) {
+     self.factory = definitions
+       .compactMap { $0 as? ViewFactory }
+       .last
+ 
+     self.props = definitions
+       .compactMap { $0 as? AnyViewProp }
++
++    self.eventNames = Array(
++      definitions
++        .compactMap { ($0 as? EventsDefinition)?.names }
++        .joined()
++    )
++
++    super.init(definitions: definitions)
+   }
+ 
+   /**
+@@ -39,3 +55,8 @@ public struct ViewManagerDefinition: AnyDefinition {
+     }
+   }
+ }
++
++/**
++ The protocol for definition components that can only be handled by the view manager builder.
++ */
++public protocol ViewManagerDefinitionComponent: AnyDefinition {}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinitionBuilder.swift b/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinitionBuilder.swift
+index 37f5a63..30829fe 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinitionBuilder.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinitionBuilder.swift
+@@ -1,4 +1,3 @@
+-
+ #if swift(>=5.4)
+ /**
+  A result builder that captures scoped definitions specific for view managers, such as `ViewFactory` and `ConcreteViewProp`.
+diff --git a/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinitionComponents.swift b/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinitionComponents.swift
+new file mode 100644
+index 0000000..fbfbe89
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Swift/Views/ViewManagerDefinitionComponents.swift
+@@ -0,0 +1,26 @@
++/// Here we implement the components exclusive for view managers.
++
++// MARK: View factory
++
++/**
++ Defines the factory creating a native view when the module is used as a view.
++ */
++public func view(_ closure: @escaping () -> UIView) -> ViewManagerDefinitionComponent {
++  return ViewFactory(closure)
++}
++
++// MARK: Props
++
++/**
++ Creates a view prop that defines its name and setter.
++ */
++public func prop<ViewType: UIView, PropType: AnyArgument>(
++  _ name: String,
++  _ setter: @escaping (ViewType, PropType) -> Void
++) -> ViewManagerDefinitionComponent {
++  return ConcreteViewProp(
++    name: name,
++    propType: ArgumentType(PropType.self),
++    setter: setter
++  )
++}
+diff --git a/node_modules/expo-modules-core/ios/Swift/Views/ViewModuleWrapper.swift b/node_modules/expo-modules-core/ios/Swift/Views/ViewModuleWrapper.swift
+index 48ed13e..e04c2ff 100644
+--- a/node_modules/expo-modules-core/ios/Swift/Views/ViewModuleWrapper.swift
++++ b/node_modules/expo-modules-core/ios/Swift/Views/ViewModuleWrapper.swift
+@@ -93,7 +93,7 @@ public final class ViewModuleWrapper: RCTViewManager, DynamicModuleWrapperProtoc
+    */
+   @objc
+   public class func propConfig_proxiedProperties() -> [String] {
+-    return ["NSDictionary", "__custom__"];
++    return ["NSDictionary", "__custom__"]
+   }
+ 
+   /**
+@@ -126,7 +126,7 @@ public final class ViewModuleWrapper: RCTViewManager, DynamicModuleWrapperProtoc
+     let prefixedViewName = "ViewManagerAdapter_\(module.name())"
+ 
+     return prefixedViewName.withCString { viewNamePtr in
+-      // Create a new meta class that inherits from `ViewModuleWrapper`. The class name passed here, doesn't work for Swift classes,
++      // Create a new class that inherits from `ViewModuleWrapper`. The class name passed here, doesn't work for Swift classes,
+       // so we also have to override `moduleName` class method.
+       let wrapperClass: AnyClass? = objc_allocateClassPair(ViewModuleWrapper.self, viewNamePtr, 0)
+ 
+@@ -141,3 +141,6 @@ public final class ViewModuleWrapper: RCTViewManager, DynamicModuleWrapperProtoc
+     }
+   }
+ }
++
++// The direct event implementation can be cached and lazy-loaded (global and static variables are lazy by default in Swift).
++let directEventBlockImplementation = imp_implementationWithBlock({ ["RCTDirectEventBlock"] } as @convention(block) () -> [String])
+diff --git a/node_modules/expo-modules-core/ios/Tests/ArgumentTypeSpec.swift b/node_modules/expo-modules-core/ios/Tests/ArgumentTypeSpec.swift
+index 1737c40..5858a5c 100644
+--- a/node_modules/expo-modules-core/ios/Tests/ArgumentTypeSpec.swift
++++ b/node_modules/expo-modules-core/ios/Tests/ArgumentTypeSpec.swift
+@@ -7,7 +7,6 @@ import Nimble
+ 
+ class ArgumentTypeSpec: QuickSpec {
+   override func spec() {
+-
+     it("casts primitives") {
+       let type = ArgumentType(Int.self)
+       let value = 123
+diff --git a/node_modules/expo-modules-core/ios/Tests/ConstantsSpec.swift b/node_modules/expo-modules-core/ios/Tests/ConstantsSpec.swift
+index c9a710a..3ca0ca4 100644
+--- a/node_modules/expo-modules-core/ios/Tests/ConstantsSpec.swift
++++ b/node_modules/expo-modules-core/ios/Tests/ConstantsSpec.swift
+@@ -9,7 +9,7 @@ class ConstantsSpec: QuickSpec {
+ 
+     it("takes closure resolving to dictionary") {
+       let holder = mockModuleHolder(appContext) {
+-        $0.constants {
++        constants {
+           return ["test": 123]
+         }
+       }
+@@ -18,15 +18,15 @@ class ConstantsSpec: QuickSpec {
+ 
+     it("takes the dictionary") {
+       let holder = mockModuleHolder(appContext) {
+-        $0.constants(["test": 123])
++        constants(["test": 123])
+       }
+       expect(holder.getConstants()["test"] as? Int) == 123
+     }
+ 
+     it("merges multiple constants definitions") {
+       let holder = mockModuleHolder(appContext) {
+-        $0.constants(["test": 456, "test2": 789])
+-        $0.constants(["test": 123])
++        constants(["test": 456, "test2": 789])
++        constants(["test": 123])
+       }
+       let consts = holder.getConstants()
+       expect(consts["test"] as? Int) == 123
+diff --git a/node_modules/expo-modules-core/ios/Tests/ExceptionsSpec.swift b/node_modules/expo-modules-core/ios/Tests/ExceptionsSpec.swift
+new file mode 100644
+index 0000000..565f3fb
+--- /dev/null
++++ b/node_modules/expo-modules-core/ios/Tests/ExceptionsSpec.swift
+@@ -0,0 +1,112 @@
++// Copyright 2021-present 650 Industries. All rights reserved.
++
++import Quick
++import Nimble
++
++@testable import ExpoModulesCore
++
++final class ExceptionsSpec: QuickSpec {
++  override func spec() {
++    it("has name") {
++      let error = TestException()
++      expect(error.name) == "TestException"
++    }
++
++    it("has code") {
++      let error = TestException()
++      expect(error.code) == "ERR_TEST"
++    }
++
++    it("has reason") {
++      let error = TestException()
++      expect(error.reason) == "This is the test exception"
++    }
++
++    it("can be chained once") {
++      func throwable() throws {
++        do {
++          throw TestExceptionCause()
++        } catch {
++          throw TestException().causedBy(error)
++        }
++      }
++      expect { try throwable() }.to(throwError { error in
++        testChainedExceptionTypes(error: error, types: [TestException.self, TestExceptionCause.self])
++      })
++    }
++
++    it("can be chained twice") {
++      func throwable() throws {
++        do {
++          do {
++            throw TestExceptionCause()
++          } catch {
++            throw TestExceptionCause().causedBy(error)
++          }
++        } catch {
++          throw TestException().causedBy(error)
++        }
++      }
++      expect { try throwable() }.to(throwError { error in
++        testChainedExceptionTypes(error: error, types: [TestException.self, TestExceptionCause.self, TestExceptionCause.self])
++      })
++    }
++
++    it("includes cause description") {
++      func throwable() throws {
++        do {
++          throw TestExceptionCause()
++        } catch {
++          throw TestException().causedBy(error)
++        }
++      }
++      expect { try throwable() }.to(throwError { error in
++        if let error = error as? TestException, let cause = error.cause as? TestExceptionCause {
++          expect(error.description).to(contain(cause.description))
++        } else {
++          fail("Error and its cause are not of expected types.")
++        }
++      })
++    }
++
++    it("has root cause") {
++      let a = TestException()
++      let b = TestException().causedBy(a)
++      let c = TestException().causedBy(b)
++
++      expect(c.rootCause) === a
++    }
++  }
++}
++
++class TestException: Exception {
++  override var reason: String {
++    "This is the test exception"
++  }
++}
++
++class TestExceptionCause: Exception {
++  override var reason: String {
++    "This is the cause of the test exception"
++  }
++}
++
++/**
++ Tests whether the exception chain matches given types and their order.
++ */
++private func testChainedExceptionTypes(error: Error, types: [Error.Type]) {
++  var next: Error? = error
++
++  for errorType in types {
++    let expectedErrorTypeName = String(describing: errorType)
++    let currentErrorTypeName = String(describing: type(of: next!))
++
++    expect(currentErrorTypeName).to(equal(expectedErrorTypeName), description: "The cause is not of type \(expectedErrorTypeName)")
++
++    if let chainableException = next as? ChainableException {
++      next = chainableException.cause
++    } else {
++      next = nil
++    }
++  }
++}
+diff --git a/node_modules/expo-modules-core/ios/Tests/FunctionSpec.swift b/node_modules/expo-modules-core/ios/Tests/FunctionSpec.swift
+index 7158497..fa16701 100644
+--- a/node_modules/expo-modules-core/ios/Tests/FunctionSpec.swift
++++ b/node_modules/expo-modules-core/ios/Tests/FunctionSpec.swift
+@@ -11,11 +11,11 @@ class FunctionSpec: QuickSpec {
+     func testFunctionReturning<T: Equatable>(value returnValue: T) {
+       waitUntil { done in
+         mockModuleHolder(appContext) {
+-          $0.function(functionName) {
++          function(functionName) {
+             return returnValue
+           }
+         }
+-        .call(function: functionName, args: []) { value, error in
++        .call(function: functionName, args: []) { value, _ in
+           expect(value).notTo(beNil())
+           expect(value).to(beAKindOf(T.self))
+           expect(value as? T).to(equal(returnValue))
+@@ -27,7 +27,7 @@ class FunctionSpec: QuickSpec {
+     it("is called") {
+       waitUntil { done in
+         mockModuleHolder(appContext) {
+-          $0.function(functionName) {
++          function(functionName) {
+             done()
+           }
+         }
+@@ -42,7 +42,7 @@ class FunctionSpec: QuickSpec {
+     }
+ 
+     it("returns int values") {
+-      testFunctionReturning(value: 1234)
++      testFunctionReturning(value: 1_234)
+       testFunctionReturning(value: [2, 1, 3, 7])
+     }
+ 
+@@ -60,7 +60,7 @@ class FunctionSpec: QuickSpec {
+       let str: String? = nil
+ 
+       mockModuleHolder(appContext) {
+-        $0.function(functionName) { (a: String?) in
++        function(functionName) { (a: String?) in
+           expect(a == nil) == true
+         }
+       }
+@@ -71,7 +71,7 @@ class FunctionSpec: QuickSpec {
+       let array: [[String]] = [["expo"]]
+ 
+       mockModuleHolder(appContext) {
+-        $0.function(functionName) { (a: [[String]]) in
++        function(functionName) { (a: [[String]]) in
+           expect(a.first!.first) == array.first!.first
+         }
+       }
+@@ -81,7 +81,7 @@ class FunctionSpec: QuickSpec {
+     describe("converting dicts to records") {
+       struct TestRecord: Record {
+         @Field var property: String = "expo"
+-        @Field var optionalProperty: Int? = nil
++        @Field var optionalProperty: Int?
+         @Field("propertyWithCustomKey") var customKeyProperty: String = "expo"
+       }
+       let dict = [
+@@ -92,11 +92,11 @@ class FunctionSpec: QuickSpec {
+       it("converts to simple record when passed as an argument") {
+         waitUntil { done in
+           mockModuleHolder(appContext) {
+-            $0.function(functionName) { (a: TestRecord) in
++            function(functionName) { (a: TestRecord) in
+               return a.property
+             }
+           }
+-          .call(function: functionName, args: [dict]) { value, error in
++          .call(function: functionName, args: [dict]) { value, _ in
+             expect(value).notTo(beNil())
+             expect(value).to(beAKindOf(String.self))
+             expect(value).to(be(dict["property"]))
+@@ -108,11 +108,11 @@ class FunctionSpec: QuickSpec {
+       it("converts to record with custom key") {
+         waitUntil { done in
+           mockModuleHolder(appContext) {
+-            $0.function(functionName) { (a: TestRecord) in
++            function(functionName) { (a: TestRecord) in
+               return a.customKeyProperty
+             }
+           }
+-          .call(function: functionName, args: [dict]) { value, error in
++          .call(function: functionName, args: [dict]) { value, _ in
+             expect(value).notTo(beNil())
+             expect(value).to(beAKindOf(String.self))
+             expect(value).to(be(dict["propertyWithCustomKey"]))
+@@ -124,11 +124,11 @@ class FunctionSpec: QuickSpec {
+       it("returns the record back") {
+         waitUntil { done in
+           mockModuleHolder(appContext) {
+-            $0.function(functionName) { (a: TestRecord) in
++            function(functionName) { (a: TestRecord) in
+               return a.toDictionary()
+             }
+           }
+-          .call(function: functionName, args: [dict]) { value, error in
++          .call(function: functionName, args: [dict]) { value, _ in
+             expect(value).notTo(beNil())
+             expect(value).to(beAKindOf(Record.Dict.self))
+ 
+@@ -145,16 +145,15 @@ class FunctionSpec: QuickSpec {
+     it("throws when called with more arguments than expected") {
+       waitUntil { done in
+         mockModuleHolder(appContext) {
+-          $0.function(functionName) { (a: Int) in
++          function(functionName) { (_: Int) in
+             return "something"
+           }
+         }
+         // Function expects one argument, let's give it more.
+-        .call(function: functionName, args: [1, 2]) { value, error in
++        .call(function: functionName, args: [1, 2]) { _, error in
+           expect(error).notTo(beNil())
+-          expect(error).to(beAKindOf(InvalidArgsNumberError.self))
+-          expect(error?.code).to(equal("ERR_INVALID_ARGS_NUMBER"))
+-          expect(error?.description).to(equal(InvalidArgsNumberError(received: 2, expected: 1).description))
++          expect(error).to(beAKindOf(FunctionCallException.self))
++          expect((error as! Exception).isCausedBy(InvalidArgsNumberException.self)) == true
+           done()
+         }
+       }
+@@ -163,16 +162,15 @@ class FunctionSpec: QuickSpec {
+     it("throws when called with arguments of incompatible types") {
+       waitUntil { done in
+         mockModuleHolder(appContext) {
+-          $0.function(functionName) { (a: String) in
++          function(functionName) { (_: String) in
+             return "something"
+           }
+         }
+         // Function expects a string, let's give it a number.
+         .call(function: functionName, args: [1]) { value, error in
+           expect(error).notTo(beNil())
+-          expect(error).to(beAKindOf(Conversions.CastingError<String>.self))
+-          expect(error?.code).to(equal("ERR_CASTING_FAILED"))
+-          expect(error?.description).to(equal(Conversions.CastingError<String>(value: 1).description))
++          expect(error).to(beAKindOf(FunctionCallException.self))
++          expect((error as! Exception).isCausedBy(Conversions.CastingError<String>.self)) == true
+           done()
+         }
+       }
+diff --git a/node_modules/expo-modules-core/ios/Tests/FunctionWithConvertiblesSpec.swift b/node_modules/expo-modules-core/ios/Tests/FunctionWithConvertiblesSpec.swift
+index 0c7ac57..dcc11b9 100644
+--- a/node_modules/expo-modules-core/ios/Tests/FunctionWithConvertiblesSpec.swift
++++ b/node_modules/expo-modules-core/ios/Tests/FunctionWithConvertiblesSpec.swift
+@@ -18,7 +18,7 @@ class FunctionWithConvertiblesSpec: QuickSpec {
+       let height = 592.1
+ 
+       mockModuleHolder(appContext) {
+-        $0.function(functionName) { (point: CGPoint, size: CGSize, vector: CGVector, rect: CGRect) in
++        function(functionName) { (point: CGPoint, size: CGSize, vector: CGVector, rect: CGRect) in
+           expect(point.x) == x
+           expect(point.y) == y
+           expect(size.width) == width
+@@ -48,7 +48,7 @@ class FunctionWithConvertiblesSpec: QuickSpec {
+       }
+ 
+       mockModuleHolder(appContext) {
+-        $0.function(functionName) { (color1: CGColor, color2: CGColor, color3: CGColor, color4: CGColor) in
++        function(functionName) { (color1: CGColor, color2: CGColor, color3: CGColor, color4: CGColor) in
+           testColorComponents(color1, 0x2A, 0x4B, 0x5D, 0xFF)
+           testColorComponents(color2, 0x11, 0xFF, 0x00, 0xDD)
+           testColorComponents(color3, 0x66, 0x00, 0xCC, 0xAA)
+diff --git a/node_modules/expo-modules-core/ios/Tests/Mocks/ModuleMocks.swift b/node_modules/expo-modules-core/ios/Tests/Mocks/ModuleMocks.swift
+index 2d1af48..94c65ee 100644
+--- a/node_modules/expo-modules-core/ios/Tests/Mocks/ModuleMocks.swift
++++ b/node_modules/expo-modules-core/ios/Tests/Mocks/ModuleMocks.swift
+@@ -32,7 +32,7 @@ class CustomModule: Module {
+ typealias MockedDefinitionFunc = (CustomModule) -> ModuleDefinition
+ 
+ func mockModuleHolder(_ appContext: AppContext, @ModuleDefinitionBuilder _ definitionBody: @escaping () -> ModuleDefinition) -> ModuleHolder {
+-  return ModuleHolder(appContext: appContext, module: CustomModule(appContext: appContext, { module in definitionBody() }))
++  return ModuleHolder(appContext: appContext, module: CustomModule(appContext: appContext, { _ in definitionBody() }))
+ }
+ 
+ func mockModuleHolder(_ appContext: AppContext, @ModuleDefinitionBuilder _ definitionBody: @escaping (CustomModule) -> ModuleDefinition) -> ModuleHolder {
+diff --git a/node_modules/expo-modules-core/ios/Tests/Mocks/ModulesProviderMock.swift b/node_modules/expo-modules-core/ios/Tests/Mocks/ModulesProviderMock.swift
+index 8a1b722..116c040 100644
+--- a/node_modules/expo-modules-core/ios/Tests/Mocks/ModulesProviderMock.swift
++++ b/node_modules/expo-modules-core/ios/Tests/Mocks/ModulesProviderMock.swift
+@@ -3,7 +3,6 @@ import ExpoModulesCore
+ public class ModulesProviderMock: ModulesProvider {
+   public override func getModuleClasses() -> [AnyModule.Type] {
+     return [
+-
+     ]
+   }
+ }
+diff --git a/node_modules/expo-modules-core/ios/Tests/ModuleEventListenersSpec.swift b/node_modules/expo-modules-core/ios/Tests/ModuleEventListenersSpec.swift
+index e460309..07055a6 100644
+--- a/node_modules/expo-modules-core/ios/Tests/ModuleEventListenersSpec.swift
++++ b/node_modules/expo-modules-core/ios/Tests/ModuleEventListenersSpec.swift
+@@ -21,7 +21,7 @@ class ModuleEventListenersSpec: QuickSpec {
+ 
+     it("calls onCreate once the module instance is created") {
+       waitUntil { done in
+-        let _ = mockModuleHolder(appContext) {
++        _ = mockModuleHolder(appContext) {
+           $0.onCreate {
+             done()
+           }
+diff --git a/node_modules/expo-modules-core/ios/Tests/RecordSpec.swift b/node_modules/expo-modules-core/ios/Tests/RecordSpec.swift
+index dd62fe1..b8860af 100644
+--- a/node_modules/expo-modules-core/ios/Tests/RecordSpec.swift
++++ b/node_modules/expo-modules-core/ios/Tests/RecordSpec.swift
+@@ -7,7 +7,7 @@ class RecordSpec: QuickSpec {
+   override func spec() {
+     it("initializes with empty dictionary") {
+       struct TestRecord: Record { }
+-      let _ = try TestRecord(from: [:])
++      _ = try TestRecord(from: [:])
+     }
+ 
+     it("works back and forth with a field") {
+@@ -37,14 +37,9 @@ class RecordSpec: QuickSpec {
+         @Field(.required) var a: Int
+       }
+ 
+-      do {
+-        let _ = try TestRecord(from: [:])
+-        fail()
+-      } catch let error as CodedError {
+-        expect(error).to(beAKindOf(FieldRequiredError.self))
+-        expect(error.code).to(equal("ERR_FIELD_REQUIRED"))
+-        expect(error.description).to(equal(FieldRequiredError(fieldKey: "a").description))
+-      }
++      expect { try TestRecord(from: [:]) }.to(throwError { error in
++        expect(error).to(beAKindOf(FieldRequiredException.self))
++      })
+     }
+ 
+     it("throws when casting is not possible") {
+@@ -53,14 +48,9 @@ class RecordSpec: QuickSpec {
+       }
+       let dict = ["a": "try with String instead of Int"]
+ 
+-      do {
+-        let _ = try TestRecord(from: dict)
+-        fail()
+-      } catch let error as CodedError {
+-        expect(error).to(beAKindOf(FieldInvalidTypeError.self))
+-        expect(error.code).to(equal("ERR_FIELD_INVALID_TYPE"))
+-        expect(error.description).to(equal(FieldInvalidTypeError(fieldKey: "a", value: dict["a"], desiredType: Int.self).description))
+-      }
++      expect { try TestRecord(from: dict) }.to(throwError { error in
++        expect(error).to(beAKindOf(FieldInvalidTypeException.self))
++      })
+     }
+   }
+ }

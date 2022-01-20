@@ -1,0 +1,7 @@
+{
+  "name": "expo-sketch",
+  "platforms": ["ios"],
+  "ios": {
+    "modulesClassNames": ["ExpoSketchModule"]
+  }
+}

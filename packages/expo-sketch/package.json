@@ -1,0 +1,35 @@
+{
+  "name": "expo-sketch",
+  "version": "1.0.0",
+  "description": "Sketching component for Expo apps",
+  "main": "build/Sketch.js",
+  "types": "build/Sketch.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "expo-module build",
+    "clean": "expo-module clean",
+    "lint": "expo-module lint",
+    "test": "expo-module test",
+    "prepare": "expo-module prepare",
+    "prepublishOnly": "expo-module prepublishOnly",
+    "expo-module": "expo-module"
+  },
+  "keywords": [
+    "react-native",
+    "expo"
+  ],
+  "jest": {
+    "preset": "expo-module-scripts/enzyme"
+  },
+  "homepage": "https://evanbacon.dev/",
+  
+  "author": "Evan Bacon",
+  "license": "MIT",
+  "devDependencies": {
+    "expo-module-scripts": "^2.0.0"
+  },
+  "peerDependencies": {
+    "expo": "*"
+  },
+  "gitHead": "2e5c6983b86d5ecfca028ba64002897d8adc2cc4"
+}
